@@ -18,11 +18,7 @@ use esp_hal::{
     dma::{DmaChannel, DmaPriority, DmaRxBuf, DmaTxBuf},
     dma_buffers,
     gpio::{Input, Level, NoPin, Output, Pull},
-    spi::{
-        master::{Config, Spi, SpiDmaBus},
-        Mode,
-    },
-    time::RateExtU32,
+    spi::master::{Config, Spi, SpiDmaBus},
     Async,
 };
 use esp_hal_embassy::main;
@@ -31,7 +27,6 @@ use log::info;
 extern crate alloc;
 
 use profont::PROFONT_24_POINT;
-//use epd_waveshare::{epd2in9bc::*, prelude::*};
 use weact_studio_epd::{
     graphics::{Display290TriColor, DisplayRotation},
     TriColor, WeActStudio290TriColorDriver,
