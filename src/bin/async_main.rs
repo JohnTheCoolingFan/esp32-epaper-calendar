@@ -14,16 +14,18 @@ use embedded_graphics::{
 };
 use esp_backtrace as _;
 use esp_hal::{
-    dma::{Dma, DmaPriority, DmaRxBuf, DmaTxBuf},
+    clock::CpuClock,
+    dma::{DmaChannel, DmaPriority, DmaRxBuf, DmaTxBuf},
     dma_buffers,
     gpio::{Input, Level, NoPin, Output, Pull},
-    prelude::*,
     spi::{
         master::{Config, Spi, SpiDmaBus},
-        SpiMode,
+        Mode,
     },
+    time::RateExtU32,
     Async,
 };
+use esp_hal_embassy::main;
 use log::info;
 
 extern crate alloc;
@@ -65,34 +67,30 @@ async fn main(spawner: Spawner) {
 
     info!("Initializing pins");
 
-    let cs = Output::new_typed(peripherals.GPIO5, Level::High);
-    let busy_in = Input::new_typed(peripherals.GPIO4, Pull::Up);
-    let rst = Output::new_typed(peripherals.GPIO10, Level::High);
-    let dc = Output::new_typed(peripherals.GPIO17, Level::Low);
+    let cs = Output::new(peripherals.GPIO5, Level::High);
+    let busy_in = Input::new(peripherals.GPIO4, Pull::Up);
+    let rst = Output::new(peripherals.GPIO10, Level::High);
+    let dc = Output::new(peripherals.GPIO17, Level::Low);
 
     info!("Initializing spi bus");
 
-    let dma = Dma::new(peripherals.DMA);
-    let dma_channel = dma.channel0;
+    let dma_channel = peripherals.DMA_CH2;
+    dma_channel.set_priority(DmaPriority::Priority0);
 
     let (rx_buffer, rx_descriptors, tx_buffer, tx_descriptors) = dma_buffers!(32000);
     let dma_rx_buf = DmaRxBuf::new(rx_descriptors, rx_buffer).unwrap();
     let dma_tx_buf = DmaTxBuf::new(tx_descriptors, tx_buffer).unwrap();
 
-    let spi_bus: SpiDmaBus<'static, Async, _> = Spi::<'static, Async, _>::new_typed_with_config(
-        peripherals.SPI2,
-        Config {
-            frequency: 100.kHz(),
-            mode: SpiMode::Mode0,
-            ..Config::default()
-        },
-    )
-    .with_cs(NoPin)
-    .with_miso(NoPin)
-    .with_sck(peripherals.GPIO18)
-    .with_mosi(peripherals.GPIO21)
-    .with_dma(dma_channel.configure(false, DmaPriority::Priority0))
-    .with_buffers(dma_rx_buf, dma_tx_buf);
+    let spi_bus: SpiDmaBus<'static, Async> =
+        Spi::<'static, _>::new(peripherals.SPI2, Config::default())
+            .unwrap()
+            .with_cs(NoPin)
+            .with_miso(NoPin)
+            .with_sck(peripherals.GPIO18)
+            .with_mosi(peripherals.GPIO21)
+            .with_dma(dma_channel)
+            .with_buffers(dma_rx_buf, dma_tx_buf)
+            .into_async();
     let spi_bus = embassy_sync::mutex::Mutex::<NoopRawMutex, _>::new(spi_bus);
 
     info!("Initializing spi device");
