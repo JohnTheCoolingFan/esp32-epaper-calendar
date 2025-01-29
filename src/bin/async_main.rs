@@ -127,11 +127,19 @@ async fn main(spawner: Spawner) {
 
     info!("Drawing");
 
-    let style = MonoTextStyle::new(&PROFONT_24_POINT, TriColor::Black);
+    let style_black = MonoTextStyle::new(&PROFONT_24_POINT, TriColor::Black);
+    let style_red = MonoTextStyle::new(&PROFONT_24_POINT, TriColor::Red);
     let _ = Text::with_text_style(
         "Hello, world!",
         Point::new(8, 68),
-        style,
+        style_black,
+        TextStyle::default(),
+    )
+    .draw(&mut display);
+    let _ = Text::with_text_style(
+        "Hello, world!",
+        Point::new(8, 34),
+        style_red,
         TextStyle::default(),
     )
     .draw(&mut display);
