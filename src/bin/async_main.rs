@@ -4,7 +4,7 @@
 use display_interface_spi::SPIInterface;
 use embassy_embedded_hal::shared_bus::asynch::spi::SpiDevice;
 use embassy_executor::Spawner;
-use embassy_sync::blocking_mutex::raw::NoopRawMutex;
+use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, mutex::Mutex};
 use embassy_time::{Duration, Timer};
 use embedded_graphics::{
     mono_font::MonoTextStyle,
@@ -27,6 +27,7 @@ use log::info;
 extern crate alloc;
 
 use profont::PROFONT_24_POINT;
+use static_cell::StaticCell;
 use weact_studio_epd::{
     graphics::{Display290TriColor, DisplayRotation},
     TriColor, WeActStudio290TriColorDriver,
@@ -76,21 +77,26 @@ async fn main(spawner: Spawner) {
     let dma_rx_buf = DmaRxBuf::new(rx_descriptors, rx_buffer).unwrap();
     let dma_tx_buf = DmaTxBuf::new(tx_descriptors, tx_buffer).unwrap();
 
-    let spi_bus: SpiDmaBus<'static, Async> =
-        Spi::<'static, _>::new(peripherals.SPI2, Config::default())
-            .unwrap()
-            .with_cs(NoPin)
-            .with_miso(NoPin)
-            .with_sck(peripherals.GPIO18)
-            .with_mosi(peripherals.GPIO21)
-            .with_dma(dma_channel)
-            .with_buffers(dma_rx_buf, dma_tx_buf)
-            .into_async();
-    let spi_bus = embassy_sync::mutex::Mutex::<NoopRawMutex, _>::new(spi_bus);
+    let spi_bus = {
+        static SPI_BUS: StaticCell<Mutex<CriticalSectionRawMutex, SpiDmaBus<'static, Async>>> =
+            StaticCell::new();
+
+        let spi_dma_bus: SpiDmaBus<'static, Async> =
+            Spi::<'static, _>::new(peripherals.SPI2, Config::default())
+                .unwrap()
+                .with_cs(NoPin)
+                .with_miso(NoPin)
+                .with_sck(peripherals.GPIO18)
+                .with_mosi(peripherals.GPIO21)
+                .with_dma(dma_channel)
+                .with_buffers(dma_rx_buf, dma_tx_buf)
+                .into_async();
+        SPI_BUS.init_with(|| Mutex::<CriticalSectionRawMutex, _>::new(spi_dma_bus))
+    };
 
     info!("Initializing spi device");
 
-    let spi_device = SpiDevice::new(&spi_bus, cs);
+    let spi_device = SpiDevice::new(spi_bus, cs);
     let spi_interface = SPIInterface::new(spi_device, dc);
 
     info!("Initializing epd");
