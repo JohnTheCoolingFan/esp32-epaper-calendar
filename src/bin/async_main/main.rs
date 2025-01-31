@@ -33,6 +33,8 @@ use weact_studio_epd::{
     TriColor, WeActStudio290TriColorDriver,
 };
 
+mod calendar;
+
 pub type SpiBusMutex = Mutex<CriticalSectionRawMutex, SpiDmaBus<'static, Async>>;
 
 #[main]
