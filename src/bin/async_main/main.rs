@@ -33,6 +33,8 @@ use weact_studio_epd::{
     TriColor, WeActStudio290TriColorDriver,
 };
 
+pub type SpiBusMutex = Mutex<CriticalSectionRawMutex, SpiDmaBus<'static, Async>>;
+
 #[main]
 async fn main(spawner: Spawner) {
     let peripherals = esp_hal::init({
