@@ -712,6 +712,7 @@ dependencies = [
  "embedded-hal-bus",
  "embedded-io",
  "embedded-io-async",
+ "embedded-nal",
  "esp-alloc",
  "esp-backtrace",
  "esp-hal",
