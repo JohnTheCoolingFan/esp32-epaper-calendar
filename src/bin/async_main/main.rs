@@ -37,6 +37,15 @@ mod calendar;
 
 pub type SpiBusMutex = Mutex<CriticalSectionRawMutex, SpiDmaBus<'static, Async>>;
 
+macro_rules! mk_static {
+    ($t:ty,$val:expr) => {{
+        static STATIC_CELL: static_cell::StaticCell<$t> = static_cell::StaticCell::new();
+        #[deny(unused_attributes)]
+        let x = STATIC_CELL.init_with(|| $val);
+        x
+    }};
+}
+
 #[main]
 async fn main(spawner: Spawner) {
     let peripherals = esp_hal::init({
@@ -81,10 +90,7 @@ async fn main(spawner: Spawner) {
     let dma_rx_buf = DmaRxBuf::new(rx_descriptors, rx_buffer).unwrap();
     let dma_tx_buf = DmaTxBuf::new(tx_descriptors, tx_buffer).unwrap();
 
-    let spi_bus = {
-        static SPI_BUS: StaticCell<Mutex<CriticalSectionRawMutex, SpiDmaBus<'static, Async>>> =
-            StaticCell::new();
-
+    let spi_bus = mk_static!(SpiBusMutex, {
         let spi_dma_bus: SpiDmaBus<'static, Async> =
             Spi::<'static, _>::new(peripherals.SPI2, Config::default())
                 .unwrap()
@@ -95,8 +101,8 @@ async fn main(spawner: Spawner) {
                 .with_dma(dma_channel)
                 .with_buffers(dma_rx_buf, dma_tx_buf)
                 .into_async();
-        SPI_BUS.init_with(|| Mutex::<CriticalSectionRawMutex, _>::new(spi_dma_bus))
-    };
+        Mutex::<CriticalSectionRawMutex, _>::new(spi_dma_bus)
+    });
 
     info!("Initializing spi device");
 
