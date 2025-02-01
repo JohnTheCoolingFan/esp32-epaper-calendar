@@ -4,11 +4,11 @@ use esp_wifi::wifi::{
     ClientConfiguration, Configuration, WifiController, WifiDevice, WifiEvent, WifiStaDevice,
     WifiState,
 };
-use heapless::String;
+#[allow(unused_imports)]
 use log::{debug, error, info, trace, warn};
 
-const SSID: &'static str = env!("SSID");
-const WIFI_PASSWORD: &'static str = env!("WIFI_PASSWORD");
+const SSID: &str = env!("SSID");
+const WIFI_PASSWORD: &str = env!("WIFI_PASSWORD");
 
 #[embassy_executor::task]
 pub async fn connection_handler_task(mut controller: WifiController<'static>) {

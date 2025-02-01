@@ -4,7 +4,7 @@
 use display_interface_spi::SPIInterface;
 use embassy_embedded_hal::shared_bus::asynch::spi::SpiDevice;
 use embassy_executor::Spawner;
-use embassy_net::{Runner, StackResources};
+use embassy_net::StackResources;
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, mutex::Mutex};
 use embassy_time::{Duration, Timer};
 use embedded_graphics::{
@@ -24,17 +24,10 @@ use esp_hal::{
     Async,
 };
 use esp_hal_embassy::main;
-use esp_wifi::{
-    wifi::{
-        ClientConfiguration, Configuration, WifiController, WifiDevice, WifiEvent, WifiStaDevice,
-        WifiState,
-    },
-    EspWifiController,
-};
-use heapless::String;
+use esp_wifi::{wifi::WifiStaDevice, EspWifiController};
+#[allow(unused_imports)]
 use log::{debug, error, info, trace, warn};
 use profont::PROFONT_24_POINT;
-use static_cell::StaticCell;
 
 extern crate alloc;
 
@@ -86,7 +79,7 @@ async fn main(spawner: Spawner) {
     let timg0 = esp_hal::timer::timg::TimerGroup::new(peripherals.TIMG0);
     let wifi_init = mk_static!(
         EspWifiController<'static>,
-        esp_wifi::init(timg0.timer0, rng.clone(), peripherals.RADIO_CLK).unwrap()
+        esp_wifi::init(timg0.timer0, rng, peripherals.RADIO_CLK).unwrap()
     );
 
     let (wifi_interface, controller) =
