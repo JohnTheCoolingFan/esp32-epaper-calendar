@@ -44,7 +44,7 @@ use weact_studio_epd::{
 };
 use wifi::{connection_handler_task, net_runner_task};
 
-mod calendar;
+mod calendar_utils;
 mod wifi;
 
 pub type SpiBusMutex = Mutex<CriticalSectionRawMutex, SpiDmaBus<'static, Async>>;
