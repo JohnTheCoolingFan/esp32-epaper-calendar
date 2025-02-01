@@ -33,20 +33,19 @@ use esp_wifi::{
 };
 use heapless::String;
 use log::{debug, error, info, trace, warn};
+use profont::PROFONT_24_POINT;
+use static_cell::StaticCell;
 
 extern crate alloc;
 
-use profont::PROFONT_24_POINT;
-use static_cell::StaticCell;
 use weact_studio_epd::{
     graphics::{Display290TriColor, DisplayRotation},
     TriColor, WeActStudio290TriColorDriver,
 };
+use wifi::{connection_handler_task, net_runner_task};
 
 mod calendar;
-
-const SSID: &'static str = env!("SSID");
-const WIFI_PASSWORD: &'static str = env!("WIFI_PASSWORD");
+mod wifi;
 
 pub type SpiBusMutex = Mutex<CriticalSectionRawMutex, SpiDmaBus<'static, Async>>;
 
@@ -191,44 +190,4 @@ async fn main(spawner: Spawner) {
     }
 
     // for inspiration have a look at the examples at https://github.com/esp-rs/esp-hal/tree/v0.22.0/examples/src/bin
-}
-
-#[embassy_executor::task]
-async fn connection_handler_task(mut controller: WifiController<'static>) {
-    info!("Starting wifi connection handler task");
-    info!("Devcie capabilities: {:?}", controller.capabilities());
-    loop {
-        match esp_wifi::wifi::wifi_state() {
-            WifiState::StaConnected => {
-                controller.wait_for_event(WifiEvent::StaDisconnected).await;
-                Timer::after(Duration::from_secs(5)).await
-            }
-            _ => {}
-        }
-        if !matches!(controller.is_started(), Ok(true)) {
-            let client_config = Configuration::Client(ClientConfiguration {
-                ssid: SSID.try_into().unwrap(),
-                password: WIFI_PASSWORD.try_into().unwrap(),
-                ..Default::default()
-            });
-            controller.set_configuration(&client_config).unwrap();
-            info!("Starting wifi");
-            controller.start_async().await.unwrap();
-            info!("Wifi started");
-        }
-        info!("About to connect");
-
-        match controller.connect_async().await {
-            Ok(_) => info!("Wifi connected"),
-            Err(e) => {
-                error!("Faield to connect to wifi: {e:?}");
-                Timer::after(Duration::from_secs(1)).await
-            }
-        }
-    }
-}
-
-#[embassy_executor::task]
-async fn net_runner_task(mut runner: Runner<'static, WifiDevice<'static, WifiStaDevice>>) {
-    runner.run().await
 }
