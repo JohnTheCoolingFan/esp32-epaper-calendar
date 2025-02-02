@@ -80,4 +80,8 @@ impl CalendarMonth {
     pub fn set_days_off(&mut self, day_off_mask: u32) {
         self.day_off_mask = day_off_mask & ((1_u32 << self.days_amount()) - 1)
     }
+
+    pub fn today_day_num(&self, today: NaiveDate) -> u8 {
+        (today - self.start_date).num_days().try_into().unwrap()
+    }
 }
