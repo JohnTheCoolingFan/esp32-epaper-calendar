@@ -1,11 +1,16 @@
 #![no_std]
 #![no_main]
 
+use core::cell::RefCell;
+
 use display_interface_spi::SPIInterface;
-use embassy_embedded_hal::shared_bus::asynch::spi::SpiDevice;
+use embassy_embedded_hal::shared_bus::{asynch::spi::SpiDevice, blocking::i2c::I2cDevice};
 use embassy_executor::Spawner;
 use embassy_net::StackResources;
-use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, mutex::Mutex};
+use embassy_sync::{
+    blocking_mutex::{self, raw::CriticalSectionRawMutex},
+    mutex::Mutex,
+};
 use embassy_time::Timer;
 use embedded_graphics::{
     mono_font::MonoTextStyle,
@@ -19,9 +24,11 @@ use esp_hal::{
     dma::{DmaChannel, DmaPriority, DmaRxBuf, DmaTxBuf},
     dma_buffers,
     gpio::{Input, Level, NoPin, Output, Pull},
+    i2c::{self, master::I2c},
     rng::Rng,
     spi::master::{Config, Spi, SpiDmaBus},
-    Async,
+    time::RateExtU32,
+    Async, Blocking,
 };
 use esp_hal_embassy::main;
 use esp_wifi::{wifi::WifiStaDevice, EspWifiController};
@@ -41,6 +48,8 @@ mod calendar_utils;
 mod wifi;
 
 pub type SpiBusMutex = Mutex<CriticalSectionRawMutex, SpiDmaBus<'static, Async>>;
+pub type I2cBusMutex =
+    blocking_mutex::Mutex<CriticalSectionRawMutex, RefCell<I2c<'static, Blocking>>>;
 
 macro_rules! mk_static {
     ($t:ty,$val:expr) => {{
@@ -100,7 +109,21 @@ async fn main(spawner: Spawner) {
     spawner.spawn(connection_handler_task(controller)).ok();
     spawner.spawn(net_runner_task(net_runner)).ok();
 
-    info!("Initializing pins");
+    info!("Initializing I2C");
+
+    let i2c_bus = mk_static!(I2cBusMutex, {
+        let i2c_bus = I2c::new(
+            peripherals.I2C0,
+            i2c::master::Config::default().with_frequency(400_u32.kHz()),
+        )
+        .unwrap()
+        .with_sda(peripherals.GPIO11)
+        .with_scl(peripherals.GPIO12);
+        blocking_mutex::Mutex::<CriticalSectionRawMutex, _>::new(RefCell::new(i2c_bus))
+    });
+    let i2c_dev_ds323x = I2cDevice::new(&*i2c_bus);
+
+    info!("Initializing spi pins");
 
     let cs = Output::new(peripherals.GPIO5, Level::High);
     let busy_in = Input::new(peripherals.GPIO4, Pull::Up);
