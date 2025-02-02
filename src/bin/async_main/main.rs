@@ -6,7 +6,7 @@ use embassy_embedded_hal::shared_bus::asynch::spi::SpiDevice;
 use embassy_executor::Spawner;
 use embassy_net::StackResources;
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, mutex::Mutex};
-use embassy_time::{Duration, Timer};
+use embassy_time::Timer;
 use embedded_graphics::{
     mono_font::MonoTextStyle,
     prelude::*,
@@ -179,7 +179,7 @@ async fn main(spawner: Spawner) {
 
     loop {
         info!("Hello world!");
-        Timer::after(Duration::from_secs(1)).await;
+        Timer::after_secs(1).await;
     }
 
     // for inspiration have a look at the examples at https://github.com/esp-rs/esp-hal/tree/v0.22.0/examples/src/bin

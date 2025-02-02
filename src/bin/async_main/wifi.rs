@@ -1,5 +1,5 @@
 use embassy_net::Runner;
-use embassy_time::{Duration, Timer};
+use embassy_time::Timer;
 use esp_wifi::wifi::{
     ClientConfiguration, Configuration, WifiController, WifiDevice, WifiEvent, WifiStaDevice,
     WifiState,
@@ -17,7 +17,7 @@ pub async fn connection_handler_task(mut controller: WifiController<'static>) {
     loop {
         if esp_wifi::wifi::wifi_state() == WifiState::StaConnected {
             controller.wait_for_event(WifiEvent::StaDisconnected).await;
-            Timer::after(Duration::from_secs(5)).await
+            Timer::after_secs(5).await
         }
         if !matches!(controller.is_started(), Ok(true)) {
             let client_config = Configuration::Client(ClientConfiguration {
@@ -36,7 +36,7 @@ pub async fn connection_handler_task(mut controller: WifiController<'static>) {
             Ok(_) => info!("Wifi connected"),
             Err(e) => {
                 error!("Faield to connect to wifi: {e:?}");
-                Timer::after(Duration::from_secs(1)).await
+                Timer::after_secs(1).await
             }
         }
     }
