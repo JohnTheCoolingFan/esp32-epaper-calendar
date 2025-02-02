@@ -930,6 +930,7 @@ dependencies = [
  "profont",
  "reqwless",
  "smoltcp",
+ "sntpc",
  "static_cell",
  "weact-studio-epd",
 ]
@@ -1708,6 +1709,17 @@ dependencies = [
  "cfg-if",
  "heapless 0.8.0",
  "managed",
+]
+
+[[package]]
+name = "sntpc"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "78f778a0f82b3cf5d75f858eceee38e84d5292f1d03415e88cc4ec45ca6ba8a2"
+dependencies = [
+ "cfg-if",
+ "embassy-net",
+ "log",
 ]
 
 [[package]]
