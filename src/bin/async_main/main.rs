@@ -147,16 +147,18 @@ async fn main(spawner: Spawner) {
     let dma_tx_buf = DmaTxBuf::new(tx_descriptors, tx_buffer).unwrap();
 
     let spi_bus = mk_static!(SpiBusMutex, {
-        let spi_dma_bus: SpiDmaBus<'static, Async> =
-            Spi::<'static, _>::new(peripherals.SPI2, Config::default())
-                .unwrap()
-                .with_cs(NoPin)
-                .with_miso(NoPin)
-                .with_sck(peripherals.GPIO18)
-                .with_mosi(peripherals.GPIO21)
-                .with_dma(dma_channel)
-                .with_buffers(dma_rx_buf, dma_tx_buf)
-                .into_async();
+        let spi_dma_bus: SpiDmaBus<'static, Async> = Spi::<'static, _>::new(
+            peripherals.SPI2,
+            Config::default().with_frequency(2_u32.MHz()),
+        )
+        .unwrap()
+        .with_cs(NoPin)
+        .with_miso(NoPin)
+        .with_sck(peripherals.GPIO18)
+        .with_mosi(peripherals.GPIO21)
+        .with_dma(dma_channel)
+        .with_buffers(dma_rx_buf, dma_tx_buf)
+        .into_async();
         Mutex::<CriticalSectionRawMutex, _>::new(spi_dma_bus)
     });
 
