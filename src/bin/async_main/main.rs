@@ -4,7 +4,7 @@
 use core::cell::RefCell;
 
 use display_interface_spi::SPIInterface;
-use ds323x::Ds323x;
+use ds323x::{ic::DS3231, interface::I2cInterface, Ds323x};
 use embassy_embedded_hal::shared_bus::{asynch::spi::SpiDevice, blocking::i2c::I2cDevice};
 use embassy_executor::Spawner;
 use embassy_net::StackResources;
@@ -46,11 +46,21 @@ use weact_studio_epd::{
 use wifi::{connection_handler_task, net_runner_task};
 
 mod calendar_utils;
+mod ntp;
 mod wifi;
 
 pub type SpiBusMutex = Mutex<CriticalSectionRawMutex, SpiDmaBus<'static, Async>>;
 pub type I2cBusMutex =
     blocking_mutex::Mutex<CriticalSectionRawMutex, RefCell<I2c<'static, Blocking>>>;
+pub type RtcDs323x = blocking_mutex::Mutex<
+    CriticalSectionRawMutex,
+    RefCell<
+        Ds323x<
+            I2cInterface<I2cDevice<'static, CriticalSectionRawMutex, I2c<'static, Blocking>>>,
+            DS3231,
+        >,
+    >,
+>;
 
 macro_rules! mk_static {
     ($t:ty,$val:expr) => {{
@@ -126,9 +136,12 @@ async fn main(spawner: Spawner) {
 
     info!("Initializing DS3231 external RTC");
 
-    let mut rtc = Ds323x::new_ds3231(i2c_dev_ds323x);
-    rtc.enable().unwrap();
-    rtc.disable_32khz_output().unwrap();
+    let rtc = mk_static!(RtcDs323x, {
+        let mut rtc = Ds323x::new_ds3231(i2c_dev_ds323x);
+        rtc.enable().unwrap();
+        rtc.disable_32khz_output().unwrap();
+        blocking_mutex::Mutex::new(RefCell::new(rtc))
+    });
 
     info!("Initializing spi pins");
 
