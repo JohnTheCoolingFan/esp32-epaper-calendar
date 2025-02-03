@@ -1,28 +1,23 @@
 use chrono::NaiveDateTime;
 use ds323x::DateTimeAccess;
+use log::error;
 use sntpc::NtpTimestampGenerator;
 
-use crate::RtcDs323x;
+use crate::RTC_CLOCK;
 
 #[derive(Clone, Copy)]
 pub struct TimestampGenerator {
     timestamp: NaiveDateTime,
-    pub rtc: &'static RtcDs323x,
-}
-
-impl TimestampGenerator {
-    fn new(rtc: &'static RtcDs323x) -> Self {
-        Self {
-            timestamp: Default::default(),
-            rtc,
-        }
-    }
 }
 
 impl NtpTimestampGenerator for TimestampGenerator {
     fn init(&mut self) {
-        let new_timestamp = self.rtc.lock(|rtc| rtc.borrow_mut().datetime().unwrap());
-        self.timestamp = new_timestamp
+        if let Some(rtc) = RTC_CLOCK.try_get() {
+            let new_timestamp = rtc.lock(|rtc| rtc.borrow_mut().datetime().unwrap());
+            self.timestamp = new_timestamp
+        } else {
+            error!("RTC_CLOCK is not set!");
+        }
     }
 
     fn timestamp_sec(&self) -> u64 {

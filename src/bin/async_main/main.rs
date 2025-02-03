@@ -11,6 +11,7 @@ use embassy_net::StackResources;
 use embassy_sync::{
     blocking_mutex::{self, raw::CriticalSectionRawMutex},
     mutex::Mutex,
+    once_lock::OnceLock,
 };
 use embassy_time::Timer;
 use embedded_graphics::{
@@ -61,6 +62,8 @@ pub type RtcDs323x = blocking_mutex::Mutex<
         >,
     >,
 >;
+
+static RTC_CLOCK: OnceLock<&'static RtcDs323x> = OnceLock::new();
 
 macro_rules! mk_static {
     ($t:ty,$val:expr) => {{
@@ -142,6 +145,8 @@ async fn main(spawner: Spawner) {
         rtc.disable_32khz_output().unwrap();
         blocking_mutex::Mutex::new(RefCell::new(rtc))
     });
+
+    RTC_CLOCK.init(&*rtc).ok();
 
     info!("Initializing spi pins");
 
