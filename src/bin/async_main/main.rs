@@ -63,7 +63,7 @@ pub type RtcDs323x = blocking_mutex::Mutex<
     >,
 >;
 
-static RTC_CLOCK: OnceLock<&'static RtcDs323x> = OnceLock::new();
+static RTC_CLOCK: OnceLock<RtcDs323x> = OnceLock::new();
 
 macro_rules! mk_static {
     ($t:ty,$val:expr) => {{
@@ -139,14 +139,14 @@ async fn main(spawner: Spawner) {
 
     info!("Initializing DS3231 external RTC");
 
-    let rtc = mk_static!(RtcDs323x, {
+    // At this point the RTC_CLOCK is not yet initialized, guranteed to be initialized HERE. Any
+    // usage must be AFTER this.
+    let rtc = RTC_CLOCK.get_or_init(|| {
         let mut rtc = Ds323x::new_ds3231(i2c_dev_ds323x);
         rtc.enable().unwrap();
         rtc.disable_32khz_output().unwrap();
         blocking_mutex::Mutex::new(RefCell::new(rtc))
     });
-
-    RTC_CLOCK.init(&*rtc).ok();
 
     info!("Initializing spi pins");
 
