@@ -25,6 +25,8 @@ pub enum RtcClockError {
     ClockCellNotSet,
 }
 
+/// Convenience wrapper to access the I2C bus attached external RTC taht is gated behidn all those
+/// locks and mutexes, with error messaging.
 pub fn access_rtc_clock<T, F>(f: F) -> Result<T, RtcClockError>
 where
     F: FnOnce(&mut Ds323xTypeConcrete) -> Result<T, <Ds323xTypeConcrete as DateTimeAccess>::Error>,
@@ -45,11 +47,12 @@ where
         })
 }
 
-/// Get time from the RTC clock on the I2C bus
+/// Get time from the RTC clock
 pub fn get_rtc_time() -> Result<NaiveDateTime, RtcClockError> {
     access_rtc_clock(|rtc| rtc.datetime())
 }
 
+/// Set the RTC module time
 pub fn set_rtc_clock(new_datetime: &NaiveDateTime) -> Result<(), RtcClockError> {
     access_rtc_clock(|rtc| rtc.set_datetime(new_datetime))
 }
@@ -77,6 +80,7 @@ impl NtpTimestampGenerator for TimestampGenerator {
 const NTP_SERVER: &str = "pool.ntp.org";
 const NTP_PORT: u16 = 123;
 
+/// Get time from an NTP server
 pub async fn get_ntp_time(stack: Stack<'_>) -> Option<NaiveDateTime> {
     let ntp_addresses = stack
         .dns_query(NTP_SERVER, DnsQueryType::A)
@@ -130,6 +134,7 @@ pub async fn get_ntp_time(stack: Stack<'_>) -> Option<NaiveDateTime> {
     }
 }
 
+/// Set RTC time to what we get from an NTP server
 pub async fn synchronize_ntp_time_to_rtc(net_stack: Stack<'_>) {
     let network_time = get_ntp_time(net_stack).await;
     if let Some(new_time) = network_time {
