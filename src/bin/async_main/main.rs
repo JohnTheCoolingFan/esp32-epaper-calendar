@@ -11,7 +11,6 @@ use embassy_net::StackResources;
 use embassy_sync::{
     blocking_mutex::{self, raw::CriticalSectionRawMutex},
     mutex::Mutex,
-    once_lock::OnceLock,
 };
 use embassy_time::Timer;
 use embedded_graphics::{
@@ -41,7 +40,6 @@ use time::RTC_CLOCK;
 
 extern crate alloc;
 
-use ds323x::DateTimeAccess;
 use weact_studio_epd::{
     graphics::{Display290TriColor, DisplayRotation},
     TriColor, WeActStudio290TriColorDriver,
