@@ -3,7 +3,6 @@
 
 use core::cell::RefCell;
 
-use chrono::NaiveDateTime;
 use display_interface_spi::SPIInterface;
 use ds323x::{ic::DS3231, interface::I2cInterface, Ds323x};
 use embassy_embedded_hal::shared_bus::{asynch::spi::SpiDevice, blocking::i2c::I2cDevice};
@@ -37,6 +36,7 @@ use esp_hal_embassy::main;
 use esp_wifi::{wifi::WifiStaDevice, EspWifiController};
 #[allow(unused_imports)]
 use log::{debug, error, info, trace, warn};
+use ntp::RTC_CLOCK;
 use profont::PROFONT_24_POINT;
 
 extern crate alloc;
@@ -60,27 +60,6 @@ pub type Ds323xTypeConcrete = Ds323x<
     DS3231,
 >;
 pub type RtcDs323x = blocking_mutex::Mutex<CriticalSectionRawMutex, RefCell<Ds323xTypeConcrete>>;
-
-static RTC_CLOCK: OnceLock<RtcDs323x> = OnceLock::new();
-
-#[derive(Debug)]
-pub enum RtcClockError {
-    I2cClockError(<Ds323xTypeConcrete as DateTimeAccess>::Error),
-    ClockCellNotSet,
-}
-
-/// Get time from the RTC clock on the I2C bus
-pub fn get_rtc_time() -> Result<NaiveDateTime, RtcClockError> {
-    RTC_CLOCK
-        .try_get()
-        .ok_or(RtcClockError::ClockCellNotSet)
-        .map_err(|e| {
-            error!("RTC_CLOCK is not set!");
-            e
-        })?
-        .lock(|rtc_lock| rtc_lock.borrow_mut().datetime())
-        .map_err(RtcClockError::I2cClockError)
-}
 
 macro_rules! mk_static {
     ($t:ty,$val:expr) => {{

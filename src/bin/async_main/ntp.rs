@@ -1,9 +1,34 @@
 use chrono::NaiveDateTime;
 use ds323x::DateTimeAccess;
+use embassy_sync::once_lock::OnceLock;
 use log::error;
 use sntpc::NtpTimestampGenerator;
 
-use crate::{get_rtc_time, RTC_CLOCK};
+pub static RTC_CLOCK: OnceLock<RtcDs323x> = OnceLock::new();
+
+#[derive(Debug)]
+pub enum RtcClockError {
+    // The field is used when debug-printing on error
+    I2cClockError(#[allow(dead_code)] <Ds323xTypeConcrete as DateTimeAccess>::Error),
+    ClockCellNotSet,
+}
+
+/// Get time from the RTC clock on the I2C bus
+pub fn get_rtc_time() -> Result<NaiveDateTime, RtcClockError> {
+    RTC_CLOCK
+        .try_get()
+        .ok_or(RtcClockError::ClockCellNotSet)
+        .inspect_err(|_e| {
+            error!("RTC_CLOCK is not set!");
+        })?
+        .lock(|rtc_lock| rtc_lock.borrow_mut().datetime())
+        .map_err(RtcClockError::I2cClockError)
+        .inspect_err(|e| {
+            error!("RTC clock error: {e:?}");
+        })
+}
+
+use crate::{Ds323xTypeConcrete, RtcDs323x};
 
 #[derive(Clone, Copy)]
 pub struct TimestampGenerator {
