@@ -3,6 +3,7 @@
 
 use core::cell::RefCell;
 
+use chrono::NaiveDateTime;
 use display_interface_spi::SPIInterface;
 use ds323x::{ic::DS3231, interface::I2cInterface, Ds323x};
 use embassy_embedded_hal::shared_bus::{asynch::spi::SpiDevice, blocking::i2c::I2cDevice};
@@ -40,6 +41,7 @@ use profont::PROFONT_24_POINT;
 
 extern crate alloc;
 
+use ds323x::DateTimeAccess;
 use weact_studio_epd::{
     graphics::{Display290TriColor, DisplayRotation},
     TriColor, WeActStudio290TriColorDriver,
@@ -53,17 +55,32 @@ mod wifi;
 pub type SpiBusMutex = Mutex<CriticalSectionRawMutex, SpiDmaBus<'static, Async>>;
 pub type I2cBusMutex =
     blocking_mutex::Mutex<CriticalSectionRawMutex, RefCell<I2c<'static, Blocking>>>;
-pub type RtcDs323x = blocking_mutex::Mutex<
-    CriticalSectionRawMutex,
-    RefCell<
-        Ds323x<
-            I2cInterface<I2cDevice<'static, CriticalSectionRawMutex, I2c<'static, Blocking>>>,
-            DS3231,
-        >,
-    >,
+pub type Ds323xTypeConcrete = Ds323x<
+    I2cInterface<I2cDevice<'static, CriticalSectionRawMutex, I2c<'static, Blocking>>>,
+    DS3231,
 >;
+pub type RtcDs323x = blocking_mutex::Mutex<CriticalSectionRawMutex, RefCell<Ds323xTypeConcrete>>;
 
 static RTC_CLOCK: OnceLock<RtcDs323x> = OnceLock::new();
+
+#[derive(Debug)]
+pub enum RtcClockError {
+    I2cClockError(<Ds323xTypeConcrete as DateTimeAccess>::Error),
+    ClockCellNotSet,
+}
+
+/// Get time from the RTC clock on the I2C bus
+pub fn get_rtc_time() -> Result<NaiveDateTime, RtcClockError> {
+    RTC_CLOCK
+        .try_get()
+        .ok_or(RtcClockError::ClockCellNotSet)
+        .map_err(|e| {
+            error!("RTC_CLOCK is not set!");
+            e
+        })?
+        .lock(|rtc_lock| rtc_lock.borrow_mut().datetime())
+        .map_err(RtcClockError::I2cClockError)
+}
 
 macro_rules! mk_static {
     ($t:ty,$val:expr) => {{

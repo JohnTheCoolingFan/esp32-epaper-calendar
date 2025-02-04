@@ -3,7 +3,7 @@ use ds323x::DateTimeAccess;
 use log::error;
 use sntpc::NtpTimestampGenerator;
 
-use crate::RTC_CLOCK;
+use crate::{get_rtc_time, RTC_CLOCK};
 
 #[derive(Clone, Copy)]
 pub struct TimestampGenerator {
@@ -12,12 +12,7 @@ pub struct TimestampGenerator {
 
 impl NtpTimestampGenerator for TimestampGenerator {
     fn init(&mut self) {
-        if let Some(rtc) = RTC_CLOCK.try_get() {
-            let new_timestamp = rtc.lock(|rtc| rtc.borrow_mut().datetime().unwrap());
-            self.timestamp = new_timestamp
-        } else {
-            error!("RTC_CLOCK is not set!");
-        }
+        self.timestamp = get_rtc_time().unwrap();
     }
 
     fn timestamp_sec(&self) -> u64 {
