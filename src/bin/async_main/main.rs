@@ -36,8 +36,8 @@ use esp_hal_embassy::main;
 use esp_wifi::{wifi::WifiStaDevice, EspWifiController};
 #[allow(unused_imports)]
 use log::{debug, error, info, trace, warn};
-use ntp::RTC_CLOCK;
 use profont::PROFONT_24_POINT;
+use time::RTC_CLOCK;
 
 extern crate alloc;
 
@@ -49,7 +49,7 @@ use weact_studio_epd::{
 use wifi::{connection_handler_task, net_runner_task};
 
 mod calendar_utils;
-mod ntp;
+mod time;
 mod wifi;
 
 pub type SpiBusMutex = Mutex<CriticalSectionRawMutex, SpiDmaBus<'static, Async>>;
