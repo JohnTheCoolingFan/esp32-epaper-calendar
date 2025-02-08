@@ -47,6 +47,7 @@ use weact_studio_epd::{
 use wifi::{connection_handler_task, net_runner_task};
 
 mod calendar_utils;
+mod draw;
 mod time;
 mod wifi;
 
