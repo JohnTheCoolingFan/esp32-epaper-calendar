@@ -3,7 +3,8 @@ use core::{
     ops::DerefMut,
 };
 
-use chrono::{NaiveDateTime, TimeDelta};
+use chrono::{DateTime, NaiveDateTime, TimeDelta};
+use chrono_tz::Tz;
 use ds323x::DateTimeAccess;
 use embassy_net::{
     udp::{PacketMetadata, UdpSocket},
@@ -55,6 +56,11 @@ where
 /// Get time from the RTC clock
 pub fn get_rtc_time() -> Result<NaiveDateTime, RtcClockError> {
     access_rtc_clock(|rtc| rtc.datetime())
+}
+
+/// Get local tiem from RTC
+pub fn get_local_rtc_time() -> Result<DateTime<Tz>, RtcClockError> {
+    get_rtc_time().map(|dt| dt.and_utc().with_timezone(&LOCAL_TZ))
 }
 
 /// Set the RTC module time
