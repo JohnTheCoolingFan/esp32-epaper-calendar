@@ -18,7 +18,9 @@ use crate::{Ds323xTypeConcrete, RtcDs323x};
 
 pub static RTC_CLOCK: OnceLock<RtcDs323x> = OnceLock::new();
 
-// Change this value to change the local timezone
+/// Change this value to change the local timezone
+///
+/// Used to synchronize the day roll-over time
 pub const LOCAL_TZ: chrono_tz::Tz = chrono_tz::Europe::Moscow;
 
 #[derive(Debug)]
