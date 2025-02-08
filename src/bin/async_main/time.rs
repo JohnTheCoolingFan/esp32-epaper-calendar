@@ -18,6 +18,9 @@ use crate::{Ds323xTypeConcrete, RtcDs323x};
 
 pub static RTC_CLOCK: OnceLock<RtcDs323x> = OnceLock::new();
 
+// Change this value to change the local timezone
+pub const LOCAL_TZ: chrono_tz::Tz = chrono_tz::Europe::Moscow;
+
 #[derive(Debug)]
 pub enum RtcClockError {
     // The field is used when debug-printing on error
