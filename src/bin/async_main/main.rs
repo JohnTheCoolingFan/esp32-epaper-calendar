@@ -3,7 +3,9 @@
 
 use core::cell::RefCell;
 
+use chrono::{Days, NaiveTime};
 use display_interface_spi::SPIInterface;
+use draw::draw_calendar;
 use ds323x::{ic::DS3231, interface::I2cInterface, Ds323x};
 use embassy_embedded_hal::shared_bus::{asynch::spi::SpiDevice, blocking::i2c::I2cDevice};
 use embassy_executor::Spawner;
@@ -36,7 +38,7 @@ use esp_wifi::{wifi::WifiStaDevice, EspWifiController};
 #[allow(unused_imports)]
 use log::{debug, error, info, trace, warn};
 use profont::PROFONT_24_POINT;
-use time::RTC_CLOCK;
+use time::{get_local_rtc_time, RTC_CLOCK};
 
 extern crate alloc;
 
@@ -223,8 +225,24 @@ async fn main(spawner: Spawner) {
     let _ = spawner;
 
     loop {
-        info!("Hello world!");
-        Timer::after_secs(1).await;
+        // todo: time sync
+
+        let local_time = get_local_rtc_time().unwrap();
+
+        display.clear(TriColor::White);
+        draw_calendar(&local_time, &mut display).await.unwrap();
+        driver.wake_up().await.unwrap();
+        driver.full_update(&display).await.unwrap();
+        driver.sleep().await.unwrap();
+
+        // Wait until 00:00:05 of the next day
+        let wait_time = ((local_time + Days::new(1))
+            .with_time(NaiveTime::from_hms(0, 0, 5))
+            .unwrap()
+            - local_time)
+            .num_seconds();
+
+        Timer::after_secs(wait_time.try_into().unwrap()).await
     }
 
     // for inspiration have a look at the examples at https://github.com/esp-rs/esp-hal/tree/v0.22.0/examples/src/bin
