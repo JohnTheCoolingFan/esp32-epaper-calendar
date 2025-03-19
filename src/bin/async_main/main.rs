@@ -50,6 +50,8 @@ use wifi::{connection_handler_task, net_runner_task};
 
 mod calendar_utils;
 mod draw;
+#[cfg(feature = "isdayoff")]
+mod isdayoff;
 mod time;
 mod wifi;
 
@@ -234,6 +236,8 @@ async fn main(spawner: Spawner) {
         driver.wake_up().await.unwrap();
         driver.full_update(&display).await.unwrap();
         driver.sleep().await.unwrap();
+
+        let local_time = get_local_rtc_time().unwrap();
 
         // Wait until 00:00:05 of the next day
         let wait_time = ((local_time + Days::new(1))
