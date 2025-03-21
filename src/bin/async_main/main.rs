@@ -9,7 +9,11 @@ use draw::draw_calendar;
 use ds323x::{ic::DS3231, interface::I2cInterface, Ds323x};
 use embassy_embedded_hal::shared_bus::{asynch::spi::SpiDevice, blocking::i2c::I2cDevice};
 use embassy_executor::Spawner;
-use embassy_net::StackResources;
+use embassy_net::{
+    dns::DnsSocket,
+    tcp::client::{TcpClient, TcpClientState},
+    StackResources,
+};
 use embassy_sync::{
     blocking_mutex::{self, raw::CriticalSectionRawMutex},
     mutex::Mutex,
@@ -38,6 +42,7 @@ use esp_wifi::{wifi::WifiStaDevice, EspWifiController};
 #[allow(unused_imports)]
 use log::{debug, error, info, trace, warn};
 use profont::PROFONT_24_POINT;
+use reqwless::client::HttpClient;
 use time::{get_local_rtc_time, RTC_CLOCK};
 
 extern crate alloc;
@@ -121,6 +126,20 @@ async fn main(spawner: Spawner) {
 
     spawner.spawn(connection_handler_task(controller)).ok();
     spawner.spawn(net_runner_task(net_runner)).ok();
+
+    info!("TCP Client init");
+
+    let tcp_state =
+        mk_static!(TcpClientState<1, 4096, 4096>, {TcpClientState::<1, 4096, 4096>::new()});
+    let tcp_client = mk_static!(TcpClient<1, 4096, 4096>, {
+        TcpClient::new(net_stack, &*tcp_state)
+    });
+    let dns_socket = mk_static!(DnsSocket<'static>, DnsSocket::new(net_stack));
+
+    let http_client = mk_static!(
+        HttpClient<'static, TcpClient<'static, 1, 4096, 4096>, DnsSocket<'static>>,
+        { HttpClient::new(&*tcp_client, &*dns_socket) }
+    );
 
     info!("Initializing I2C");
 
@@ -241,7 +260,7 @@ async fn main(spawner: Spawner) {
 
         // Wait until 00:00:05 of the next day
         let wait_time = ((local_time + Days::new(1))
-            .with_time(NaiveTime::from_hms(0, 0, 5))
+            .with_time(NaiveTime::from_hms_opt(0, 0, 5).unwrap())
             .unwrap()
             - local_time)
             .num_seconds();
