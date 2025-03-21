@@ -247,6 +247,7 @@ async fn main(spawner: Spawner) {
 
     loop {
         // todo: time sync
+        // todo: fetch and use isdayoff
 
         let local_time = get_local_rtc_time().unwrap();
 
