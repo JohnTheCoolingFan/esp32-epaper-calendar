@@ -958,6 +958,7 @@ dependencies = [
  "heapless 0.8.0",
  "log",
  "num-traits",
+ "paste",
  "profont",
  "reqwless",
  "smoltcp",

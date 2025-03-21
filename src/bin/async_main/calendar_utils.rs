@@ -23,6 +23,37 @@ pub const fn all_weekdays_short_en() -> [&'static str; 7] {
     ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
 }
 
+pub struct DaysIter<'a> {
+    current_day: u8,
+    end_at: u8,
+    calendar: &'a CalendarMonth,
+}
+
+impl<'a> DaysIter<'a> {
+    fn new(calendar: &'a CalendarMonth) -> Self {
+        Self {
+            current_day: 0,
+            end_at: calendar.days_amount(),
+            calendar,
+        }
+    }
+}
+
+impl Iterator for DaysIter<'_> {
+    type Item = (u8, bool);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.current_day == self.end_at {
+            None
+        } else {
+            let is_day_off = ((self.calendar.day_off_mask >> self.current_day) & 0b1) != 0;
+            let res = (self.current_day, is_day_off);
+            self.current_day += 1;
+            Some(res)
+        }
+    }
+}
+
 /// Data used to describe a calendar month
 #[derive(Debug, Clone, Copy)]
 pub struct CalendarMonth {
@@ -39,6 +70,10 @@ impl CalendarMonth {
             day_off_mask: Self::default_days_off(weekday),
             start_date: date,
         }
+    }
+
+    pub fn days_iter(&self) -> DaysIter<'_> {
+        DaysIter::new(self)
     }
 
     const fn default_days_off(starts_on: Weekday) -> u32 {
