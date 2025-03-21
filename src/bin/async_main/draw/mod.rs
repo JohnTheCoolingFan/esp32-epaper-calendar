@@ -52,7 +52,7 @@ pub async fn draw_calendar<D: DrawTarget<Color = TriColor>>(
             style,
             TextStyle::with_alignment(Alignment::Center),
         )
-        .draw(display);
+        .draw(display)?;
     }
 
     let start_offset = calendar.start_weekday().num_days_from_monday() as u8;
@@ -74,10 +74,10 @@ pub async fn draw_calendar<D: DrawTarget<Color = TriColor>>(
             },
             TextStyle::with_alignment(Alignment::Center),
         )
-        .draw(display);
+        .draw(display)?;
 
         if day == today {
-            let _ = Rectangle::with_center(
+            Rectangle::with_center(
                 pos + Point::new(-1, -4),
                 Size {
                     width: column_spacing.x as u32,
@@ -85,7 +85,7 @@ pub async fn draw_calendar<D: DrawTarget<Color = TriColor>>(
                 },
             )
             .into_styled(HIGHLIGHT_STYLE)
-            .draw(display);
+            .draw(display)?;
         }
     }
 
@@ -101,14 +101,14 @@ pub async fn draw_calendar<D: DrawTarget<Color = TriColor>>(
         STYLE_BLACK_18,
         TextStyle::with_alignment(Alignment::Left),
     )
-    .draw(display);
+    .draw(display)?;
     let _ = Text::with_text_style(
         &year,
         year_pos,
         STYLE_RED_18,
         TextStyle::with_alignment(Alignment::Left),
     )
-    .draw(display);
+    .draw(display)?;
 
-    todo!()
+    Ok(())
 }
