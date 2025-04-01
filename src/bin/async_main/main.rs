@@ -217,50 +217,28 @@ async fn main(spawner: Spawner) {
     let mut display = Display290TriColor::new();
     display.set_rotation(DisplayRotation::Rotate90);
 
-    info!("Drawing");
-
-    let style_black = MonoTextStyle::new(&PROFONT_24_POINT, TriColor::Black);
-    let style_red = MonoTextStyle::new(&PROFONT_24_POINT, TriColor::Red);
-    let _ = Text::with_text_style(
-        "Hello, world!",
-        Point::new(8, 68),
-        style_black,
-        TextStyle::default(),
-    )
-    .draw(&mut display);
-    let _ = Text::with_text_style(
-        "Hello, world!",
-        Point::new(8, 34),
-        style_red,
-        TextStyle::default(),
-    )
-    .draw(&mut display);
-
-    info!("Display full update");
-
-    driver.full_update(&display).await.unwrap();
-
-    info!("Pre sleep");
-
-    driver.sleep().await.unwrap();
-
-    info!("Post sleep");
+    info!("Display buffer init done");
 
     // TODO: Spawn some tasks
     let _ = spawner;
+
+    info!("Loop starting");
 
     loop {
         // todo: time sync
         // todo: fetch and use isdayoff
 
+        info!("Getting time");
         let local_time = get_local_rtc_time().unwrap();
 
+        info!("Drawing calendar");
         display.clear(TriColor::White);
         draw_calendar(&local_time, &mut display).await.unwrap();
         driver.wake_up().await.unwrap();
         driver.full_update(&display).await.unwrap();
         driver.sleep().await.unwrap();
 
+        info!("Getting time and sleeping");
         let local_time = get_local_rtc_time().unwrap();
 
         // Wait until 00:00:05 of the next day
