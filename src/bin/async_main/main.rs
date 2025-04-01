@@ -12,7 +12,7 @@ use embassy_executor::Spawner;
 use embassy_net::{
     dns::DnsSocket,
     tcp::client::{TcpClient, TcpClientState},
-    StackResources,
+    DhcpConfig, StackResources,
 };
 use embassy_sync::{
     blocking_mutex::{self, raw::CriticalSectionRawMutex},
@@ -114,7 +114,11 @@ async fn main(spawner: Spawner) {
 
     info!("Initializing network stack");
 
-    let net_config = embassy_net::Config::dhcpv4(Default::default());
+    let net_config = embassy_net::Config::dhcpv4({
+        let mut config = DhcpConfig::default();
+        config.hostname = Some("ESP32-Epaper-Calendar".try_into().unwrap());
+        config
+    });
     let net_seed = (rng.random() as u64) << 32 | rng.random() as u64;
 
     let (net_stack, net_runner) = embassy_net::new(
