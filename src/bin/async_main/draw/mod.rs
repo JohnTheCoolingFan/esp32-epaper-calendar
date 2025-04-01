@@ -31,7 +31,7 @@ pub async fn draw_calendar<D: DrawTarget<Color = TriColor>>(
 
     let calendar = CalendarMonth::from_date(local_date_naive);
     let today = calendar.today_day_num(local_date_naive);
-    let days_grid_anchor = Point::new(14, 26);
+    let days_grid_anchor = Point::new(14, 48);
     let weekday_anchor = days_grid_anchor + Point::new(0, -14);
 
     const HIGHLIGHT_STYLE: PrimitiveStyle<TriColor> = PrimitiveStyleBuilder::new()
