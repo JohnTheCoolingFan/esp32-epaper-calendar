@@ -13,7 +13,7 @@ const WIFI_PASSWORD: &str = env!("WIFI_PASSWORD");
 #[embassy_executor::task]
 pub async fn connection_handler_task(mut controller: WifiController<'static>) {
     info!("Starting wifi connection handler task");
-    info!("Devcie capabilities: {:?}", controller.capabilities());
+    info!("Device capabilities: {:?}", controller.capabilities());
     loop {
         if esp_wifi::wifi::wifi_state() == WifiState::StaConnected {
             controller.wait_for_event(WifiEvent::StaDisconnected).await;
