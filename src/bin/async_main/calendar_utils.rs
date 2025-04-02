@@ -1,5 +1,7 @@
 //! A bunch of utils for working with calendar stuff
 
+use core::ops::Range;
+
 use chrono::{Datelike, Month, Months, NaiveDate, Weekday};
 use num_traits::FromPrimitive;
 
@@ -23,34 +25,28 @@ pub const fn all_weekdays_short_en() -> [&'static str; 7] {
     ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
 }
 
-pub struct DaysIter<'a> {
-    current_day: u8,
-    end_at: u8,
-    calendar: &'a CalendarMonth,
+pub struct DaysIter {
+    range: Range<u8>,
+    days_off_mask: u32,
 }
 
-impl<'a> DaysIter<'a> {
-    fn new(calendar: &'a CalendarMonth) -> Self {
+impl DaysIter {
+    fn new(calendar: &CalendarMonth) -> Self {
         Self {
-            current_day: 0,
-            end_at: calendar.days_amount(),
-            calendar,
+            range: 0..calendar.days_amount(),
+            days_off_mask: calendar.day_off_mask,
         }
     }
 }
 
-impl Iterator for DaysIter<'_> {
+impl Iterator for DaysIter {
     type Item = (u8, bool);
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.current_day == self.end_at {
-            None
-        } else {
-            let is_day_off = ((self.calendar.day_off_mask >> self.current_day) & 0b1) != 0;
-            let res = (self.current_day, is_day_off);
-            self.current_day += 1;
-            Some(res)
-        }
+        let idx = self.range.next()?;
+        let is_day_off = ((self.days_off_mask >> idx) & 0b1) != 0;
+        let res = (idx, is_day_off);
+        Some(res)
     }
 }
 
