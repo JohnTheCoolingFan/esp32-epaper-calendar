@@ -48,7 +48,6 @@ pub async fn get_days_off_mask(
             let body = response.body().read_to_end().await.unwrap();
             body.reverse();
             let body = from_utf8(&*body).unwrap();
-            let body = ArrayString::<32>::from(body).unwrap();
             let res = parse_isdayoff_response(body);
             Ok(Some(res))
         }
@@ -77,6 +76,6 @@ pub async fn get_days_off_mask(
     }
 }
 
-fn parse_isdayoff_response(body: ArrayString<32>) -> u32 {
-    u32::from_str_radix(&body, 2).unwrap()
+fn parse_isdayoff_response(body: &str) -> u32 {
+    u32::from_str_radix(body, 2).unwrap()
 }

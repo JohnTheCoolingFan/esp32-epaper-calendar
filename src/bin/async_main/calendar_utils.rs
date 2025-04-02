@@ -68,7 +68,7 @@ impl CalendarMonth {
         }
     }
 
-    pub fn days_iter(&self) -> DaysIter<'_> {
+    pub fn days_iter(&self) -> DaysIter {
         DaysIter::new(self)
     }
 
