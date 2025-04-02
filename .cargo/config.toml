@@ -3,6 +3,7 @@ runner = "espflash flash --monitor"
 
 [env]
 ESP_LOG="INFO"
+EMBASSY_EXECUTOR_TASK_ARENA_SIZE="32768"
 
 [build]
 rustflags = [
