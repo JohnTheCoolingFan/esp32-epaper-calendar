@@ -4,7 +4,7 @@
 use core::cell::RefCell;
 
 use calendar_utils::CalendarMonth;
-use chrono::{Days, NaiveTime};
+use chrono::{DateTime, Days, NaiveDate, NaiveDateTime, NaiveTime};
 use display_interface_spi::SPIInterface;
 use draw::draw_calendar;
 use ds323x::{ic::DS3231, interface::I2cInterface, Ds323x};
@@ -40,11 +40,12 @@ use esp_hal::{
 };
 use esp_hal_embassy::main;
 use esp_wifi::{wifi::WifiStaDevice, EspWifiController};
+use isdayoff::{update_days_off_mask, HttpClientConcrete};
 #[allow(unused_imports)]
 use log::{debug, error, info, trace, warn};
 use profont::PROFONT_24_POINT;
 use reqwless::client::HttpClient;
-use time::{get_local_rtc_time, synchronize_ntp_time_to_rtc, RTC_CLOCK};
+use time::{get_local_rtc_time, synchronize_ntp_time_to_rtc, LOCAL_TZ, RTC_CLOCK};
 
 extern crate alloc;
 
@@ -141,10 +142,9 @@ async fn main(spawner: Spawner) {
     });
     let dns_socket = mk_static!(DnsSocket<'static>, DnsSocket::new(net_stack));
 
-    let http_client = mk_static!(
-        HttpClient<'static, TcpClient<'static, 1, 4096, 4096>, DnsSocket<'static>>,
-        { HttpClient::new(&*tcp_client, &*dns_socket) }
-    );
+    let http_client = mk_static!(HttpClientConcrete, {
+        HttpClient::new(&*tcp_client, &*dns_socket)
+    });
 
     info!("Initializing I2C");
 
@@ -234,10 +234,15 @@ async fn main(spawner: Spawner) {
 
         info!("Getting time");
         let local_time = get_local_rtc_time().unwrap();
+        let mut calendar = CalendarMonth::from_date(local_time.date_naive());
+
+        info!("Getting isdayoff data");
+        update_days_off_mask(http_client, &mut calendar)
+            .await
+            .unwrap();
 
         info!("Drawing calendar");
         display.clear(TriColor::White);
-        let calendar = CalendarMonth::from_date(local_time.date_naive());
         draw_calendar(&local_time, calendar, &mut display)
             .await
             .unwrap();

@@ -10,6 +10,8 @@ use chrono::Month;
 use embassy_net::{dns::DnsSocket, tcp::client::TcpClient};
 use reqwless::{client::HttpClient, request::Method, response::StatusCode};
 
+use crate::calendar_utils::CalendarMonth;
+
 /// Country to fetch the isdayoff data for
 const TARGET_COUNTRY: TargetCountry = TargetCountry::Russia;
 
@@ -32,13 +34,27 @@ impl TargetCountry {
     }
 }
 
+pub type HttpClientConcrete =
+    HttpClient<'static, TcpClient<'static, 1, 4096, 4096>, DnsSocket<'static>>;
+
+pub async fn update_days_off_mask(
+    client: &mut HttpClientConcrete,
+    calendar: &mut CalendarMonth,
+) -> Result<(), reqwless::Error> {
+    let year = calendar.year();
+    let month = calendar.month() as u8 + 1;
+    let mask = get_days_off_mask(client, year, month).await?;
+    calendar.set_days_off(mask.unwrap());
+    Ok(())
+}
+
 pub async fn get_days_off_mask(
-    client: &mut HttpClient<'static, TcpClient<'static, 1, 4096, 4096>, DnsSocket<'static>>,
+    client: &mut HttpClientConcrete,
     year: u16,
     month: u8,
 ) -> Result<Option<u32>, reqwless::Error> {
     let cc = TARGET_COUNTRY.to_countrycode();
-    let url = format!("https://isdayoff.ru/api/getdata?year={year}&month={month}&cc={cc}");
+    let url = format!("http://isdayoff.ru/api/getdata?year={year}&month={month}&cc={cc}");
     let mut rx_buf = [0; 4096];
     let mut request = client.request(Method::GET, &url).await?;
     let response = request.send(&mut rx_buf).await?;
@@ -53,14 +69,14 @@ pub async fn get_days_off_mask(
         }
         StatusCode(400) => {
             let body = response.body().read_to_end().await.unwrap();
-            let body = from_utf8(&*body).unwrap();
             // Why is this service using 400 as status code for "service error"? It should be 5XX.
             // It even uses 400 for "not found" like favicon.ico!
-            if body == "100" {
+            if body == b"100" {
                 log::error!("isdayoff request failed, invalid date");
-            } else if body == "199" {
+            } else if body == b"199" {
                 log::error!("isdayoff request failed, backend error");
             } else {
+                let body = from_utf8(&*body).unwrap();
                 log::warn!("Unexpected error response: {body}")
             }
             Ok(None)
