@@ -22,6 +22,7 @@ const GRID_DAY_STYLE_RED: StyleType = STYLE_RED_12;
 
 pub async fn draw_calendar<D: DrawTarget<Color = TriColor>>(
     time: &DateTime<Tz>,
+    calendar: CalendarMonth,
     display: &mut D,
 ) -> Result<(), D::Error> {
     let column_spacing = Point::new(1, 0) + GRID_DAY_STYLE_BLACK.font.character_size.x_axis() * 3;
@@ -29,7 +30,6 @@ pub async fn draw_calendar<D: DrawTarget<Color = TriColor>>(
 
     let local_date_naive = time.naive_local().date();
 
-    let calendar = CalendarMonth::from_date(local_date_naive);
     let today = calendar.today_day_num(local_date_naive);
     let days_grid_anchor = Point::new(14, 48);
     let weekday_anchor = days_grid_anchor + Point::new(0, -14);

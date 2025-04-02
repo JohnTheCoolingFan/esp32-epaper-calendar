@@ -3,6 +3,7 @@
 
 use core::cell::RefCell;
 
+use calendar_utils::CalendarMonth;
 use chrono::{Days, NaiveTime};
 use display_interface_spi::SPIInterface;
 use draw::draw_calendar;
@@ -236,7 +237,10 @@ async fn main(spawner: Spawner) {
 
         info!("Drawing calendar");
         display.clear(TriColor::White);
-        draw_calendar(&local_time, &mut display).await.unwrap();
+        let calendar = CalendarMonth::from_date(local_time.date_naive());
+        draw_calendar(&local_time, calendar, &mut display)
+            .await
+            .unwrap();
         driver.wake_up().await.unwrap();
         driver.full_update(&display).await.unwrap();
         driver.sleep().await.unwrap();
