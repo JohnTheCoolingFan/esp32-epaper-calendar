@@ -93,6 +93,7 @@ const NTP_PORT: u16 = 123;
 
 /// Get time from an NTP server
 pub async fn get_ntp_time(stack: Stack<'_>) -> Option<NaiveDateTime> {
+    stack.wait_config_up().await;
     let ntp_addresses = stack
         .dns_query(NTP_SERVER, DnsQueryType::A)
         .await

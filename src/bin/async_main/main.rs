@@ -43,7 +43,7 @@ use esp_wifi::{wifi::WifiStaDevice, EspWifiController};
 use log::{debug, error, info, trace, warn};
 use profont::PROFONT_24_POINT;
 use reqwless::client::HttpClient;
-use time::{get_local_rtc_time, RTC_CLOCK};
+use time::{get_local_rtc_time, synchronize_ntp_time_to_rtc, RTC_CLOCK};
 
 extern crate alloc;
 
@@ -228,6 +228,9 @@ async fn main(spawner: Spawner) {
         // todo: time sync
         // todo: fetch and use isdayoff
 
+        info!("NTP time sync");
+        synchronize_ntp_time_to_rtc(net_stack).await;
+
         info!("Getting time");
         let local_time = get_local_rtc_time().unwrap();
 
@@ -248,7 +251,8 @@ async fn main(spawner: Spawner) {
             - local_time)
             .num_seconds();
 
-        Timer::after_secs(wait_time.try_into().unwrap()).await
+        Timer::after_secs(wait_time.try_into().unwrap()).await;
+        info!("Wake up from waiting");
     }
 
     // for inspiration have a look at the examples at https://github.com/esp-rs/esp-hal/tree/v0.22.0/examples/src/bin
