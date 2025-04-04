@@ -87,7 +87,6 @@ impl NtpTimestampGenerator for TimestampGenerator {
     }
 }
 
-// Maybe replace with a list and try using some otehr server if this one is down?
 const NTP_SERVER_POOL: &[&str] = &["pool.ntp.org"];
 const NTP_PORT: u16 = 123;
 
@@ -136,7 +135,6 @@ pub async fn get_ntp_time(stack: Stack<'_>) -> Option<NaiveDateTime> {
 
     let ntp_context = NtpContext::new(TimestampGenerator::default());
 
-    // Maybe iterate over the received ip addresses?
     for address in ntp_addresses {
         let ntp_result =
             sntpc::get_time(SocketAddr::from((address, NTP_PORT)), &socket, ntp_context).await;
