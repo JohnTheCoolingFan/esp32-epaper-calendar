@@ -31,7 +31,7 @@ pub enum RtcClockError {
     ClockCellNotSet,
 }
 
-/// Convenience wrapper to access the I2C bus attached external RTC taht is gated behidn all those
+/// Convenience wrapper to access the I2C bus attached external RTC that is gated behind all those
 /// locks and mutexes, with error messaging.
 pub fn access_rtc_clock<T, F>(f: F) -> Result<T, RtcClockError>
 where
