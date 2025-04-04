@@ -88,20 +88,37 @@ impl NtpTimestampGenerator for TimestampGenerator {
 }
 
 // Maybe replace with a list and try using some otehr server if this one is down?
-const NTP_SERVER: &str = "pool.ntp.org";
+const NTP_SERVER_POOL: &[&str] = &["pool.ntp.org"];
 const NTP_PORT: u16 = 123;
+
+pub async fn try_resolve_from_pool(
+    stack: Stack<'_>,
+    pool: &'static [&'static str],
+) -> Option<(
+    &'static str,
+    heapless::Vec<smoltcp::wire::IpAddress, { smoltcp::config::DNS_MAX_RESULT_COUNT }>,
+)> {
+    for address in pool {
+        match stack.dns_query(address, DnsQueryType::A).await {
+            Ok(res) => {
+                if res.is_empty() {
+                    log::warn!("No IP addresses returned for NTP server `{address}`");
+                } else {
+                    return Some((address, res));
+                }
+            }
+            Err(e) => {
+                error!("Failed to query IP address for NTP server `{address}`: {e:?}");
+            }
+        }
+    }
+    None
+}
 
 /// Get time from an NTP server
 pub async fn get_ntp_time(stack: Stack<'_>) -> Option<NaiveDateTime> {
     stack.wait_config_up().await;
-    let ntp_addresses = stack
-        .dns_query(NTP_SERVER, DnsQueryType::A)
-        .await
-        .expect("Failed to resolve DNS for ntp server");
-    if ntp_addresses.is_empty() {
-        error!("Failed to resolve DNS for ntp server {NTP_SERVER:?}");
-        return None;
-    }
+    let (ntp_server_name, ntp_addresses) = try_resolve_from_pool(stack, NTP_SERVER_POOL).await?;
 
     let mut rx_meta = [PacketMetadata::EMPTY; 16];
     let mut rx_buffer = [0; 4096];
@@ -120,30 +137,26 @@ pub async fn get_ntp_time(stack: Stack<'_>) -> Option<NaiveDateTime> {
     let ntp_context = NtpContext::new(TimestampGenerator::default());
 
     // Maybe iterate over the received ip addresses?
-    let ntp_server_addr = ntp_addresses[0];
+    for address in ntp_addresses {
+        let ntp_result =
+            sntpc::get_time(SocketAddr::from((address, NTP_PORT)), &socket, ntp_context).await;
 
-    let ntp_result = sntpc::get_time(
-        SocketAddr::from((ntp_server_addr, NTP_PORT)),
-        &socket,
-        ntp_context,
-    )
-    .await;
-
-    match ntp_result {
-        Ok(time) => {
-            let new_datetime = NaiveDateTime::UNIX_EPOCH
-                + TimeDelta::new(
-                    time.sec().into(),
-                    sntpc::fraction_to_nanoseconds(time.sec_fraction()),
-                )
-                .unwrap();
-            Some(new_datetime)
-        }
-        Err(e) => {
-            error!("Failed to request time: {e:?}");
-            None
+        match ntp_result {
+            Ok(time) => {
+                let new_datetime = NaiveDateTime::UNIX_EPOCH
+                    + TimeDelta::new(
+                        time.sec().into(),
+                        sntpc::fraction_to_nanoseconds(time.sec_fraction()),
+                    )
+                    .unwrap();
+                return Some(new_datetime);
+            }
+            Err(e) => {
+                error!("Failed to synchronize time from server `{ntp_server_name}` at IP `{address}`: {e:?}");
+            }
         }
     }
+    None
 }
 
 /// Set RTC time to what we get from an NTP server
