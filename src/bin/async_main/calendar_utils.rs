@@ -27,14 +27,14 @@ pub const fn all_weekdays_short_en() -> [&'static str; 7] {
 
 pub struct DaysIter {
     range: Range<u8>,
-    days_off_mask: u32,
+    days_off_mask: DaysOffMask,
 }
 
 impl DaysIter {
-    fn new(calendar: &CalendarMonth) -> Self {
+    const fn new(calendar: &CalendarMonth) -> Self {
         Self {
             range: 0..calendar.days_amount(),
-            days_off_mask: calendar.day_off_mask,
+            days_off_mask: calendar.days_off_mask,
         }
     }
 }
@@ -44,7 +44,7 @@ impl Iterator for DaysIter {
 
     fn next(&mut self) -> Option<Self::Item> {
         let idx = self.range.next()?;
-        let is_day_off = ((self.days_off_mask >> idx) & 0b1) != 0;
+        let is_day_off = self.days_off_mask.is_day0_off(idx);
         let res = (idx, is_day_off);
         Some(res)
     }
@@ -55,22 +55,73 @@ impl Iterator for DaysIter {
 pub struct MonthDate(u16);
 
 impl MonthDate {
-    pub fn new(year: u16, month: Month) -> Self {
+    pub const fn new(year: u16, month: Month) -> Self {
         debug_assert!(year < (1 << 12));
         Self(year << 4 | (month.number_from_month() as u16))
     }
 
-    pub fn year(self) -> u16 {
+    pub const fn year(self) -> u16 {
         self.0 >> 4
     }
 
-    fn month(self) -> Month {
+    const fn month(self) -> Month {
         let month_num = (self.0 & 0b1111) as u8;
-        Month::try_from(month_num).unwrap()
+        match month_num {
+            1 => Month::January,
+            2 => Month::February,
+            3 => Month::March,
+            4 => Month::April,
+            5 => Month::May,
+            6 => Month::June,
+            7 => Month::July,
+            8 => Month::August,
+            9 => Month::September,
+            10 => Month::October,
+            11 => Month::November,
+            12 => Month::December,
+            _ => unreachable!(),
+        }
     }
 
-    pub fn to_start_day_naive(self) -> NaiveDate {
-        NaiveDate::from_ymd(self.year() as i32, self.month().number_from_month(), 1)
+    pub const fn to_start_day_naive(self) -> NaiveDate {
+        NaiveDate::from_ymd_opt(self.year() as i32, self.month().number_from_month(), 1).unwrap()
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct DaysOffMask(u32);
+
+impl DaysOffMask {
+    pub const fn new(val: u32) -> Self {
+        Self(val)
+    }
+
+    pub const fn truncate(self, days: u8) -> Self {
+        Self(self.0 & (1_u32 << days - 1))
+    }
+
+    const fn default_days_off(starts_on: Weekday) -> Self {
+        let offset = starts_on as u8;
+        let init_mask = if offset == 6 {
+            0b1000001_u32
+        } else {
+            0b1100000_u32 >> offset
+        };
+        Self(
+            init_mask
+                | (init_mask << 7)
+                | (init_mask << (7 * 2))
+                | (init_mask << (7 * 3))
+                | (init_mask << (7 * 4)),
+        )
+    }
+
+    pub const fn is_day0_off(self, day: u8) -> bool {
+        ((self.0 >> day) & 0b1) != 0
+    }
+
+    pub const fn is_day1_off(self, day: u8) -> bool {
+        self.is_day0_off(day + 1)
     }
 }
 
@@ -78,7 +129,7 @@ impl MonthDate {
 #[derive(Debug, Clone, Copy)]
 pub struct CalendarMonth {
     date: MonthDate,
-    day_off_mask: u32,
+    days_off_mask: DaysOffMask,
 }
 
 impl CalendarMonth {
@@ -90,8 +141,15 @@ impl CalendarMonth {
         let date = date.with_day0(0).unwrap();
         let weekday = date.weekday();
         Self {
-            day_off_mask: Self::default_days_off(weekday),
+            days_off_mask: DaysOffMask::default_days_off(weekday),
             date: MonthDate::new(year as u16, Month::try_from(month as u8).unwrap()),
+        }
+    }
+
+    pub const fn new_raw(date: MonthDate, day_off_mask: DaysOffMask) -> Self {
+        Self {
+            date,
+            days_off_mask: day_off_mask,
         }
     }
 
@@ -99,30 +157,16 @@ impl CalendarMonth {
         DaysIter::new(self)
     }
 
-    const fn default_days_off(starts_on: Weekday) -> u32 {
-        let offset = starts_on as u8;
-        let init_mask = if offset == 6 {
-            0b1000001_u32
-        } else {
-            0b1100000_u32 >> offset
-        };
-        init_mask
-            | (init_mask << 7)
-            | (init_mask << (7 * 2))
-            | (init_mask << (7 * 3))
-            | (init_mask << (7 * 4))
-    }
-
-    pub fn start_date(&self) -> NaiveDate {
+    pub const fn start_date(&self) -> NaiveDate {
         self.date.to_start_day_naive()
     }
 
     /// Get teh amount of days in this month
-    pub fn days_amount(&self) -> u8 {
+    pub const fn days_amount(&self) -> u8 {
         let start = self.start_date();
-        let end = start + Months::new(1);
+        let end = start.checked_add_months(Months::new(1)).unwrap();
         let result = end.signed_duration_since(start).num_days();
-        result.try_into().unwrap()
+        result as u8
     }
 
     /// Get the day of teh week this month starts on
@@ -136,22 +180,17 @@ impl CalendarMonth {
     }
 
     /// Get the month this month is from
-    pub fn month(&self) -> Month {
+    pub const fn month(&self) -> Month {
         self.date.month()
     }
 
-    /// Get the year this month is from, clamped to CE era and up to 4095
-    pub fn year(&self) -> u16 {
+    /// Get the year this month is from, clamped to CE and up to 4095
+    pub const fn year(&self) -> u16 {
         self.date.year()
     }
 
     /// Set the days off
-    pub fn set_days_off(&mut self, day_off_mask: u32) {
-        self.day_off_mask = day_off_mask & ((1_u32 << self.days_amount()) - 1)
-    }
-
-    /// Get `today` as a number in this month
-    pub fn today_day_num(&self, today: NaiveDate) -> u8 {
-        (today - self.start_date()).num_days().try_into().unwrap()
+    pub const fn set_days_off(&mut self, days_off_mask: DaysOffMask) {
+        self.days_off_mask = days_off_mask.truncate(self.days_amount());
     }
 }

@@ -8,12 +8,19 @@ use core::str::from_utf8;
 use arrayvec::ArrayString;
 use chrono::Month;
 use embassy_net::{dns::DnsSocket, tcp::client::TcpClient};
+use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, mutex::Mutex};
+use heapless::LinearMap;
 use reqwless::{client::HttpClient, request::Method, response::StatusCode};
 
-use crate::calendar_utils::CalendarMonth;
+use crate::calendar_utils::{CalendarMonth, DaysOffMask, MonthDate};
 
 /// Country to fetch the isdayoff data for
 const TARGET_COUNTRY: TargetCountry = TargetCountry::Russia;
+
+static ISDAYOFF_CACHE: Mutex<
+    CriticalSectionRawMutex,
+    heapless::LinearMap<MonthDate, DaysOffMask, 3>,
+> = Mutex::new(LinearMap::new());
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum TargetCountry {
@@ -44,7 +51,7 @@ pub async fn update_days_off_mask(
     let year = calendar.year();
     let month = calendar.month() as u8 + 1;
     let mask = get_days_off_mask(client, year, month).await?;
-    calendar.set_days_off(mask.unwrap());
+    calendar.set_days_off(DaysOffMask::new(mask.unwrap()));
     Ok(())
 }
 

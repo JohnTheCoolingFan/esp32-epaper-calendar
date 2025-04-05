@@ -1,6 +1,6 @@
 use alloc::string::ToString;
 
-use chrono::DateTime;
+use chrono::{DateTime, Datelike};
 use chrono_tz::Tz;
 use embedded_graphics::{
     prelude::{DrawTarget, Point, Primitive, Size},
@@ -30,7 +30,7 @@ pub async fn draw_calendar<D: DrawTarget<Color = TriColor>>(
 
     let local_date_naive = time.naive_local().date();
 
-    let today = calendar.today_day_num(local_date_naive);
+    let today = local_date_naive.day0() as u8;
     let days_grid_anchor = Point::new(14, 48);
     let weekday_anchor = days_grid_anchor + Point::new(0, -14);
 

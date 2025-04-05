@@ -121,7 +121,7 @@ async fn main(spawner: Spawner) {
         config.hostname = Some("ESP32-Epaper-Calendar".try_into().unwrap());
         config
     });
-    let net_seed = (rng.random() as u64) << 32 | rng.random() as u64;
+    let net_seed = ((rng.random() as u64) << 32) | rng.random() as u64;
 
     let (net_stack, net_runner) = embassy_net::new(
         wifi_interface,
