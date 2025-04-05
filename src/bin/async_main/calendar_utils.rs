@@ -1,6 +1,6 @@
 //! A bunch of utils for working with calendar stuff
 
-use core::ops::Range;
+use core::ops::{Add, Range, Sub};
 
 use chrono::{Datelike, Month, Months, NaiveDate, Weekday};
 use num_traits::FromPrimitive;
@@ -64,7 +64,7 @@ impl MonthDate {
         self.0 >> 4
     }
 
-    const fn month(self) -> Month {
+    pub const fn month(self) -> Month {
         let month_num = (self.0 & 0b1111) as u8;
         match month_num {
             1 => Month::January,
@@ -85,6 +85,44 @@ impl MonthDate {
 
     pub const fn to_start_day_naive(self) -> NaiveDate {
         NaiveDate::from_ymd_opt(self.year() as i32, self.month().number_from_month(), 1).unwrap()
+    }
+}
+
+impl Add<Months> for MonthDate {
+    type Output = Self;
+
+    fn add(self, rhs: Months) -> Self::Output {
+        let rhs = rhs.as_u32() as u8;
+        let lhs = (self.0 & 0b1111) as u8 - 1;
+
+        let sum_months = lhs + rhs;
+
+        let add_years = sum_months / 12;
+        let months_remainder = sum_months % 12;
+
+        MonthDate::new(
+            self.year() + add_years,
+            Month::from_u8(months_remainder + 1),
+        )
+    }
+}
+
+impl Sub<Months> for MonthDate {
+    type Output = Self;
+
+    fn sub(self, rhs: Months) -> Self::Output {
+        let rhs = rhs.as_u32() as u8;
+        let lhs = (self.0 & 0b1111) as u8 - 1;
+
+        if rhs > lhs {
+            let sub_years = ((rhs - lhs) / 12) + 1;
+            MonthDate::new(
+                self.year() - sub_years,
+                Month::from_u8(lhs + 1 + (sub_years * 12) - rhs),
+            )
+        } else {
+            MonthDate::new(self.year(), Month::from_u8(lhs - rhs + 1))
+        }
     }
 }
 
@@ -144,6 +182,11 @@ impl CalendarMonth {
             days_off_mask: DaysOffMask::default_days_off(weekday),
             date: MonthDate::new(year as u16, Month::try_from(month as u8).unwrap()),
         }
+    }
+
+    #[inline(always)]
+    pub fn month_date(self) -> MonthDate {
+        self.date
     }
 
     pub const fn new_raw(date: MonthDate, day_off_mask: DaysOffMask) -> Self {
