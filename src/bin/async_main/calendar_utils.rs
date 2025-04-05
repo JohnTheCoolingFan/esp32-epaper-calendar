@@ -50,21 +50,48 @@ impl Iterator for DaysIter {
     }
 }
 
+/// CE era month
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct MonthDate(u16);
+
+impl MonthDate {
+    pub fn new(year: u16, month: Month) -> Self {
+        debug_assert!(year < (1 << 12));
+        Self(year << 4 | (month.number_from_month() as u16))
+    }
+
+    pub fn year(self) -> u16 {
+        self.0 >> 4
+    }
+
+    fn month(self) -> Month {
+        let month_num = (self.0 & 0b1111) as u8;
+        Month::try_from(month_num).unwrap()
+    }
+
+    pub fn to_start_day_naive(self) -> NaiveDate {
+        NaiveDate::from_ymd(self.year() as i32, self.month().number_from_month(), 1)
+    }
+}
+
 /// Data used to describe a calendar month
 #[derive(Debug, Clone, Copy)]
 pub struct CalendarMonth {
+    date: MonthDate,
     day_off_mask: u32,
-    start_date: NaiveDate,
 }
 
 impl CalendarMonth {
     /// By default uses the days off mask of saturday and sunday always being days off
     pub fn from_date(date: NaiveDate) -> Self {
+        // Assume year is in CE
+        let (_, year) = date.year_ce();
+        let month = date.month();
         let date = date.with_day0(0).unwrap();
         let weekday = date.weekday();
         Self {
             day_off_mask: Self::default_days_off(weekday),
-            start_date: date,
+            date: MonthDate::new(year as u16, Month::try_from(month as u8).unwrap()),
         }
     }
 
@@ -87,12 +114,12 @@ impl CalendarMonth {
     }
 
     pub fn start_date(&self) -> NaiveDate {
-        self.start_date
+        self.date.to_start_day_naive()
     }
 
     /// Get teh amount of days in this month
     pub fn days_amount(&self) -> u8 {
-        let start = self.start_date;
+        let start = self.start_date();
         let end = start + Months::new(1);
         let result = end.signed_duration_since(start).num_days();
         result.try_into().unwrap()
@@ -100,23 +127,22 @@ impl CalendarMonth {
 
     /// Get the day of teh week this month starts on
     pub fn start_weekday(&self) -> Weekday {
-        self.start_date.weekday()
+        self.start_date().weekday()
     }
 
     /// Get the number of the week this month starts on
     pub fn start_week_num(&self) -> u8 {
-        self.start_date.iso_week().week0() as u8
+        self.start_date().iso_week().week0() as u8
     }
 
     /// Get the month this month is from
     pub fn month(&self) -> Month {
-        Month::from_u32(self.start_date.month()).unwrap()
+        self.date.month()
     }
 
-    /// Get the year this month is from, clamped to CE era and up to u16::MAX
+    /// Get the year this month is from, clamped to CE era and up to 4095
     pub fn year(&self) -> u16 {
-        let (_, year) = self.start_date().year_ce();
-        year.try_into().unwrap()
+        self.date.year()
     }
 
     /// Set the days off
@@ -126,6 +152,6 @@ impl CalendarMonth {
 
     /// Get `today` as a number in this month
     pub fn today_day_num(&self, today: NaiveDate) -> u8 {
-        (today - self.start_date).num_days().try_into().unwrap()
+        (today - self.start_date()).num_days().try_into().unwrap()
     }
 }
