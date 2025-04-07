@@ -25,11 +25,11 @@ static ISDAYOFF_CACHE: Mutex<
 
 async fn insert_cache(month: MonthDate, mask: DaysOffMask) {
     let mut cache = ISDAYOFF_CACHE.lock().await;
-    let _ = cache.insert(month, mask).inspect_err(|e| {
+    let _ = cache.insert(month, mask).inspect_err(|_e| {
         error!(
             "Failed to populate cache year {} month {}, attempt to insert over capacity",
             month.year(),
-            month.month()
+            month.month().number_from_month()
         )
     });
 }
@@ -52,6 +52,7 @@ pub async fn populate_cache(
             insert_cache(month, mask).await;
         }
     }
+    Ok(())
 }
 
 pub async fn clear_cache() {

@@ -101,8 +101,8 @@ impl Add<Months> for MonthDate {
         let months_remainder = sum_months % 12;
 
         MonthDate::new(
-            self.year() + add_years,
-            Month::from_u8(months_remainder + 1),
+            self.year() + add_years as u16,
+            Month::from_u8(months_remainder + 1).unwrap(),
         )
     }
 }
@@ -117,11 +117,11 @@ impl Sub<Months> for MonthDate {
         if rhs > lhs {
             let sub_years = ((rhs - lhs) / 12) + 1;
             MonthDate::new(
-                self.year() - sub_years,
-                Month::from_u8(lhs + 1 + (sub_years * 12) - rhs),
+                self.year() - sub_years as u16,
+                Month::from_u8(lhs + 1 + (sub_years * 12) - rhs).unwrap(),
             )
         } else {
-            MonthDate::new(self.year(), Month::from_u8(lhs - rhs + 1))
+            MonthDate::new(self.year(), Month::from_u8(lhs - rhs + 1).unwrap())
         }
     }
 }
@@ -135,7 +135,7 @@ impl DaysOffMask {
     }
 
     pub const fn truncate(self, days: u8) -> Self {
-        Self(self.0 & (1_u32 << days - 1))
+        Self(self.0 & ((1_u32 << days) - 1))
     }
 
     const fn default_days_off(starts_on: Weekday) -> Self {
