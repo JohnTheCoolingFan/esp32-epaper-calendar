@@ -7,13 +7,13 @@ use calendar_utils::CalendarMonth;
 use chrono::{Days, NaiveTime};
 use display_interface_spi::SPIInterface;
 use draw::draw_calendar;
-use ds323x::{ic::DS3231, interface::I2cInterface, Ds323x};
+use ds323x::{Ds323x, ic::DS3231, interface::I2cInterface};
 use embassy_embedded_hal::shared_bus::{asynch::spi::SpiDevice, blocking::i2c::I2cDevice};
 use embassy_executor::Spawner;
 use embassy_net::{
+    DhcpConfig, StackResources,
     dns::DnsSocket,
     tcp::client::{TcpClient, TcpClientState},
-    DhcpConfig, StackResources,
 };
 use embassy_sync::{
     blocking_mutex::{self, raw::CriticalSectionRawMutex},
@@ -22,6 +22,7 @@ use embassy_sync::{
 use embassy_time::Timer;
 use esp_backtrace as _;
 use esp_hal::{
+    Async, Blocking,
     clock::CpuClock,
     dma::{DmaChannel, DmaPriority, DmaRxBuf, DmaTxBuf},
     dma_buffers,
@@ -30,21 +31,20 @@ use esp_hal::{
     rng::Rng,
     spi::master::{Config, Spi, SpiDmaBus},
     time::RateExtU32,
-    Async, Blocking,
 };
 use esp_hal_embassy::main;
-use esp_wifi::{wifi::WifiStaDevice, EspWifiController};
-use isdayoff::{update_days_off_mask, HttpClientConcrete};
+use esp_wifi::{EspWifiController, wifi::WifiStaDevice};
+use isdayoff::{HttpClientConcrete, update_days_off_mask};
 #[allow(unused_imports)]
 use log::{debug, error, info, trace, warn};
 use reqwless::client::HttpClient;
-use time::{get_local_rtc_time, synchronize_ntp_time_to_rtc, RTC_CLOCK};
+use time::{RTC_CLOCK, get_local_rtc_time, synchronize_ntp_time_to_rtc};
 
 extern crate alloc;
 
 use weact_studio_epd::{
-    graphics::{Display290TriColor, DisplayRotation},
     TriColor, WeActStudio290TriColorDriver,
+    graphics::{Display290TriColor, DisplayRotation},
 };
 use wifi::{connection_handler_task, net_runner_task};
 
