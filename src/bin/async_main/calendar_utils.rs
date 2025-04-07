@@ -57,7 +57,7 @@ pub struct MonthDate(u16);
 impl MonthDate {
     pub const fn new(year: u16, month: Month) -> Self {
         debug_assert!(year < (1 << 12));
-        Self(year << 4 | (month.number_from_month() as u16))
+        Self((year << 4) | (month.number_from_month() as u16))
     }
 
     pub const fn year(self) -> u16 {

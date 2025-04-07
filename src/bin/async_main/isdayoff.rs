@@ -5,12 +5,11 @@
 use alloc::format;
 use core::str::from_utf8;
 
-use arrayvec::ArrayString;
-use chrono::{Month, Months};
+use chrono::Months;
 use embassy_net::{dns::DnsSocket, tcp::client::TcpClient};
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, mutex::Mutex};
 use heapless::LinearMap;
-use log::error;
+use log::{error, info};
 use reqwless::{client::HttpClient, request::Method, response::StatusCode};
 
 use crate::calendar_utils::{CalendarMonth, DaysOffMask, MonthDate};

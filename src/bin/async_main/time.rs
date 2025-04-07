@@ -1,7 +1,4 @@
-use core::{
-    net::{IpAddr, SocketAddr},
-    ops::DerefMut,
-};
+use core::{net::SocketAddr, ops::DerefMut};
 
 use chrono::{DateTime, NaiveDateTime, TimeDelta};
 use chrono_tz::Tz;

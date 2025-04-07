@@ -4,7 +4,7 @@
 use core::cell::RefCell;
 
 use calendar_utils::CalendarMonth;
-use chrono::{DateTime, Days, NaiveDate, NaiveDateTime, NaiveTime};
+use chrono::{Days, NaiveTime};
 use display_interface_spi::SPIInterface;
 use draw::draw_calendar;
 use ds323x::{ic::DS3231, interface::I2cInterface, Ds323x};
@@ -20,12 +20,6 @@ use embassy_sync::{
     mutex::Mutex,
 };
 use embassy_time::Timer;
-use embedded_graphics::{
-    mono_font::MonoTextStyle,
-    prelude::*,
-    text::{Text, TextStyle},
-    Drawable,
-};
 use esp_backtrace as _;
 use esp_hal::{
     clock::CpuClock,
@@ -43,9 +37,8 @@ use esp_wifi::{wifi::WifiStaDevice, EspWifiController};
 use isdayoff::{update_days_off_mask, HttpClientConcrete};
 #[allow(unused_imports)]
 use log::{debug, error, info, trace, warn};
-use profont::PROFONT_24_POINT;
 use reqwless::client::HttpClient;
-use time::{get_local_rtc_time, synchronize_ntp_time_to_rtc, LOCAL_TZ, RTC_CLOCK};
+use time::{get_local_rtc_time, synchronize_ntp_time_to_rtc, RTC_CLOCK};
 
 extern crate alloc;
 
