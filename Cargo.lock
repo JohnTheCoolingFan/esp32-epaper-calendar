@@ -53,12 +53,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dcfed56ad506cb2c684a14971b8861fdc3baaaae314b9e5f9bb532cbe3ba7a4f"
 
 [[package]]
-name = "arrayvec"
-version = "0.7.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7c02d123df017efcdfbd739ef81735b36c5ba83ec3c59c80a9d7ecc718f92e50"
-
-[[package]]
 name = "as-slice"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -940,10 +934,8 @@ dependencies = [
 name = "esp32-epaper-calendar"
 version = "0.1.0"
 dependencies = [
- "arrayvec",
  "chrono",
  "chrono-tz",
- "critical-section",
  "display-interface-spi",
  "ds323x",
  "embassy-embedded-hal",
