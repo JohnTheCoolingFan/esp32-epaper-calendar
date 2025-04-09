@@ -55,7 +55,7 @@ weact-studio-epd = "0.1.2"
 reqwless = { version = "0.13.0", features = ["log"], optional = true, default-features = false }
 sntpc = { version = "0.5.2", default-features = false, features = ["embassy-socket", "log"] }
 
-chrono = { version = "0.4.39", default-features = false, features = ["alloc"] }
+chrono = { version = "0.4.39", default-features = false }
 chrono-tz = { version = "0.10.1", default-features = false }
 
 num-traits = { version = "0.2.19", default-features = false }
