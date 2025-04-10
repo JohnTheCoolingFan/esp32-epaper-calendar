@@ -183,7 +183,8 @@ async fn main(spawner: Spawner) {
     let spi_bus = mk_static!(SpiBusMutex, {
         let spi_dma_bus: SpiDmaBus<'static, Async> = Spi::<'static, _>::new(
             peripherals.SPI2,
-            Config::default().with_frequency(2_u32.MHz()),
+            // the display controller supports SPI speed up to 20MHz
+            Config::default().with_frequency(20_u32.MHz()),
         )
         .unwrap()
         .with_cs(NoPin)
