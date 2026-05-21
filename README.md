@@ -10,7 +10,7 @@
 
 You will need https://crates.io/crates/cargo-espflash and the esp toolchain set up
 
-`cargo espflash flash` for default configuration (`ntp`, `isdayoff`, `calendar-style-triplet`)
+`cargo espflash flash` for default configuration (`ntp`, `isdayoff`, `calendar-style-bignum`)
 
 `cargo espflash flash --no-default-features --features <features>` for configuring the build, replace `<features>` with a comma-separated list of cargo features, WITHOUT SPACES
 
