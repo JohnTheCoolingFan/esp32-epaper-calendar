@@ -59,6 +59,20 @@ pub fn set_rtc_clock(new_datetime: &NaiveDateTime) -> Result<(), RtcClockError> 
     access_rtc_clock(|rtc| rtc.set_datetime(new_datetime))
 }
 
+#[cfg(not(feature = "ntp"))]
+pub fn sync_rtc_clock_from_env() -> Result<(), RtcClockError> {
+    let buildtime = env!("BUILD_DATETIME");
+
+    if let Ok(buildtime_datetime) = DateTime::parse_from_rfc3339(buildtime) {
+        let rtc_time = get_local_rtc_time()?;
+        if rtc_time < buildtime_datetime {
+            set_rtc_clock(&buildtime_datetime.naive_utc())?;
+        }
+    }
+
+    Ok(())
+}
+
 #[cfg(feature = "ntp")]
 pub mod ntp {
     use core::net::SocketAddr;

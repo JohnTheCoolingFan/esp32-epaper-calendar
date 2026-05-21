@@ -12,4 +12,13 @@ fn main() {
             }
         }
     }
+    #[cfg(not(feature = "ntp"))]
+    {
+        // pass the time via env vars
+
+        use chrono::Utc;
+        let local_time = Utc::now();
+        let local_time_str = local_time.to_rfc3339();
+        println!("cargo:rustc-env=BUILD_DATETIME={local_time_str}");
+    }
 }

@@ -34,6 +34,11 @@ Add `-M` flag to see the bootup log
 ### User-facing cargo features:
 
 - `isdayoff` - Enable days off fetching, currently via https://isdayoff.ru/
-- `ntp` - enable SNTP time sync
+- `ntp` - enable SNTP time sync, if disabled, will try to use your local time while flashing
 - `calendar-style-bignum` or `calendar-style-triplet` - enable ONE to select the display style
 - `monthdate-packed` - experimental representation of MonthDate, potentially better memory utilization
+
+### More customization
+
+- isdayoff country can be changed in [`src/bin/async_main/isdayoff.rs`](src/bin/async_main/isdayoff.rs) by changing the `TARGET_COUNTRY` constant
+- Timezone can be changed in [`src/bin/async_main/time.rs`](src/bin/async_main/time.rs) by changing the `LOCAL_TZ` constant
