@@ -12,12 +12,6 @@ use draw::draw_calendars;
 use ds323x::{Ds323x, ic::DS3231, interface::I2cInterface};
 use embassy_embedded_hal::shared_bus::{asynch::spi::SpiDevice, blocking::i2c::I2cDevice};
 use embassy_executor::Spawner;
-#[cfg(feature = "networking")]
-use embassy_net::{
-    DhcpConfig, StackResources,
-    dns::DnsSocket,
-    tcp::client::{TcpClient, TcpClientState},
-};
 use embassy_sync::{
     blocking_mutex::{self, raw::CriticalSectionRawMutex},
     mutex::Mutex,
@@ -36,14 +30,10 @@ use esp_hal::{
     time::RateExtU32,
 };
 use esp_hal_embassy::main;
-#[cfg(feature = "networking")]
-use esp_wifi::{EspWifiController, wifi::WifiStaDevice};
 #[cfg(feature = "isdayoff")]
-use isdayoff::{HttpClientConcrete, update_days_off_mask};
+use isdayoff::update_days_off_mask;
 #[allow(unused_imports)]
 use log::{debug, error, info, trace, warn};
-#[cfg(feature = "isdayoff")]
-use reqwless::client::HttpClient;
 #[cfg(feature = "ntp")]
 use time::ntp::synchronize_ntp_time_to_rtc;
 use time::{RTC_CLOCK, get_local_rtc_time};
@@ -107,7 +97,7 @@ async fn main(spawner: Spawner) {
 
     info!("RNG init");
 
-    let mut rng = Rng::new(peripherals.RNG);
+    let rng = Rng::new(peripherals.RNG);
 
     #[cfg(feature = "networking")]
     let net_stack = {
@@ -127,21 +117,6 @@ async fn main(spawner: Spawner) {
     #[cfg(feature = "isdayoff")]
     let http_client = wifi::init_tcp_http(net_stack);
 
-    /*
-    info!("TCP Client init");
-
-    let tcp_state =
-        mk_static!(TcpClientState<1, 4096, 4096>, {TcpClientState::<1, 4096, 4096>::new()});
-    let tcp_client = mk_static!(TcpClient<1, 4096, 4096>, {
-        TcpClient::new(net_stack, &*tcp_state)
-    });
-    let dns_socket = mk_static!(DnsSocket<'static>, DnsSocket::new(net_stack));
-
-    let http_client = mk_static!(HttpClientConcrete, {
-        HttpClient::new(&*tcp_client, &*dns_socket)
-    });
-    */
-
     info!("Initializing I2C");
 
     let i2c_bus = mk_static!(I2cBusMutex, {
@@ -158,8 +133,9 @@ async fn main(spawner: Spawner) {
 
     info!("Initializing DS3231 external RTC");
 
-    // At this point the RTC_CLOCK is not yet initialized, guranteed to be initialized HERE. Any
+    // At this point the RTC_CLOCK is not yet initialized, guaranteed to be initialized HERE. Any
     // usage must be AFTER this.
+    #[allow(unused_variables)]
     let rtc = RTC_CLOCK.get_or_init(|| {
         let mut rtc = Ds323x::new_ds3231(i2c_dev_ds323x);
         rtc.enable().unwrap();
@@ -234,10 +210,13 @@ async fn main(spawner: Spawner) {
 
         info!("Getting time");
         let local_time = get_local_rtc_time().unwrap();
+        #[allow(unused_mut)]
         let mut calendar = CalendarMonth::from_date(local_time.date_naive());
+        #[allow(unused_mut)]
         #[cfg(feature = "calendar-style-triplet")]
         let mut calendar_before =
             CalendarMonth::from_date(local_time.date_naive() - Months::new(1));
+        #[allow(unused_mut)]
         #[cfg(feature = "calendar-style-triplet")]
         let mut calendar_after = CalendarMonth::from_date(local_time.date_naive() + Months::new(1));
 

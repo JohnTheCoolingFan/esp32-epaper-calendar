@@ -1,6 +1,7 @@
 use embassy_executor::Spawner;
+use embassy_net::{DhcpConfig, Runner, Stack, StackResources};
+#[cfg(feature = "isdayoff")]
 use embassy_net::{
-    DhcpConfig, Runner, Stack, StackResources,
     dns::DnsSocket,
     tcp::client::{TcpClient, TcpClientState},
 };
@@ -93,11 +94,9 @@ pub fn init_tcp_http(net_stack: Stack<'static>) -> &'static mut HttpClientConcre
     });
     let dns_socket = mk_static!(DnsSocket<'static>, DnsSocket::new(net_stack));
 
-    let http_client = mk_static!(HttpClientConcrete, {
+    mk_static!(HttpClientConcrete, {
         reqwless::client::HttpClient::new(&*tcp_client, &*dns_socket)
-    });
-
-    http_client
+    })
 }
 
 #[embassy_executor::task]

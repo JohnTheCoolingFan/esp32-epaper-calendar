@@ -32,6 +32,7 @@ impl DaysOffMask {
         ((self.0 >> day) & 0b1) != 0
     }
 
+    #[allow(dead_code)]
     pub const fn is_day1_off(self, day: u8) -> bool {
         self.is_day0_off(day + 1)
     }

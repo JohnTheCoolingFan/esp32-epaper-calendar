@@ -55,6 +55,7 @@ impl CalendarMonth {
         self.date
     }
 
+    #[allow(dead_code)]
     pub const fn new_raw(date: MonthDate, day_off_mask: DaysOffMask) -> Self {
         Self {
             date,
@@ -84,6 +85,7 @@ impl CalendarMonth {
     }
 
     /// Get the number of the week this month starts on
+    #[allow(dead_code)]
     pub fn start_week_num(&self) -> u8 {
         self.start_date().iso_week().week0() as u8
     }

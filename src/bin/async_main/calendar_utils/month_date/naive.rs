@@ -1,6 +1,6 @@
-use core::ops::{Add, Range, Sub};
+use core::ops::{Add, Sub};
 
-use chrono::{Datelike, Month, Months, NaiveDate, Weekday};
+use chrono::{Datelike, Month, Months, NaiveDate};
 use num_traits::FromPrimitive;
 
 /// CE era month

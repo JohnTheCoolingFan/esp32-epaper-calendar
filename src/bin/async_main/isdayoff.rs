@@ -77,6 +77,7 @@ fn get_months_triplet(current_month: MonthDate) -> [MonthDate; 3] {
     ]
 }
 
+#[allow(unused)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum TargetCountry {
     Belarus,

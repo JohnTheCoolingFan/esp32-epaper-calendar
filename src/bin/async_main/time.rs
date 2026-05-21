@@ -1,6 +1,6 @@
 use core::ops::DerefMut;
 
-use chrono::{DateTime, NaiveDateTime, TimeDelta};
+use chrono::{DateTime, NaiveDateTime};
 use chrono_tz::Tz;
 use ds323x::DateTimeAccess;
 use embassy_sync::once_lock::OnceLock;

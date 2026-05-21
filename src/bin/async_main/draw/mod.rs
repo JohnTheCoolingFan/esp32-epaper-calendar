@@ -8,7 +8,6 @@ use embedded_graphics::{
     primitives::{PrimitiveStyle, PrimitiveStyleBuilder, Rectangle},
     text::{Alignment, Text, TextStyle},
 };
-use num_traits::FromPrimitive;
 use weact_studio_epd::TriColor;
 
 use crate::calendar_utils::{CalendarMonth, all_weekdays_short_en};
@@ -20,9 +19,14 @@ const WEEKDAY_TEXT_STYLE_BLACK: StyleType = STYLE_BLACK_9;
 const WEEKDAY_TEXT_STYLE_RED: StyleType = STYLE_RED_9;
 const GRID_DAY_STYLE_BLACK: StyleType = STYLE_BLACK_12;
 const GRID_DAY_STYLE_RED: StyleType = STYLE_RED_12;
-const SMALL_WEEKDAY_TEXT_STYLE_BLACK: StyleType = STYLE_BLACK_7;
-const SMALL_WEEKDAY_TEXT_STYLE_RED: StyleType = STYLE_RED_7;
+// mini-calendars in triplet do not print weekday labels
+//#[cfg(feature = "calendar-style-triplet")]
+//const SMALL_WEEKDAY_TEXT_STYLE_BLACK: StyleType = STYLE_BLACK_7;
+//#[cfg(feature = "calendar-style-triplet")]
+//const SMALL_WEEKDAY_TEXT_STYLE_RED: StyleType = STYLE_RED_7;
+#[cfg(feature = "calendar-style-triplet")]
 const SMALL_GRID_DAY_STYLE_BLACK: StyleType = STYLE_BLACK_7;
+#[cfg(feature = "calendar-style-triplet")]
 const SMALL_GRID_DAY_STYLE_RED: StyleType = STYLE_RED_7;
 
 pub fn draw_calendars<D: DrawTarget<Color = TriColor>>(
@@ -205,6 +209,8 @@ fn draw_current_day_big<D: DrawTarget<Color = TriColor>>(
     calendar: CalendarMonth,
     display: &mut D,
 ) -> Result<(), D::Error> {
+    use num_traits::FromPrimitive;
+
     let anchor = Point::new(228, 50);
     let current_day = time.day() as u8;
     let is_day_off = calendar

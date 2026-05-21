@@ -3,18 +3,18 @@
 pub mod calendar;
 pub mod daysoff_mask;
 mod month_date;
-use core::ops::{Add, Range, Sub};
 
 pub use calendar::CalendarMonth;
-use chrono::{Datelike, Month, Months, NaiveDate, Weekday};
+use chrono::Weekday;
 pub use daysoff_mask::DaysOffMask;
 pub use month_date::MonthDate;
-use num_traits::FromPrimitive;
 
+#[allow(dead_code)]
 pub const fn weekday_short_name(val: Weekday) -> &'static str {
     all_weekdays_short_en()[val.num_days_from_monday() as usize]
 }
 
+#[allow(dead_code)]
 pub const fn all_weekdays() -> [Weekday; 7] {
     [
         Weekday::Mon,
