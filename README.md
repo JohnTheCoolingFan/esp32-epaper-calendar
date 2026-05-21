@@ -23,6 +23,14 @@ Add `-M` flag to see the bootup log
 - Two display styles: three months or current month and day
 - Can run without network access if time sync and days off fetching are disabled
 
+## Styles
+
+### Current month + Today as big number (`calendar-style-bignum`)
+<img width="1402" height="789" alt="bignum style" src="https://github.com/user-attachments/assets/cf7f5c94-fe9e-4ac6-bb59-17faeff497f3" />
+
+### Current, previous and next months (`calendar-style-triplet`)
+<img width="1402" height="789" alt="triplet style" src="https://github.com/user-attachments/assets/5a989c7d-0eb0-4381-9494-e0adef78207d" />
+
 ### User-facing cargo features:
 
 - `isdayoff` - Enable days off fetching, currently via https://isdayoff.ru/
