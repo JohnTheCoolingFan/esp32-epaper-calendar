@@ -1,16 +1,10 @@
-use core::{net::SocketAddr, ops::DerefMut};
+use core::ops::DerefMut;
 
 use chrono::{DateTime, NaiveDateTime, TimeDelta};
 use chrono_tz::Tz;
 use ds323x::DateTimeAccess;
-use embassy_net::{
-    udp::{PacketMetadata, UdpSocket},
-    Stack,
-};
 use embassy_sync::once_lock::OnceLock;
 use log::error;
-use smoltcp::wire::DnsQueryType;
-use sntpc::{NtpContext, NtpTimestampGenerator};
 
 use crate::{Ds323xTypeConcrete, RtcDs323x};
 
@@ -65,101 +59,117 @@ pub fn set_rtc_clock(new_datetime: &NaiveDateTime) -> Result<(), RtcClockError> 
     access_rtc_clock(|rtc| rtc.set_datetime(new_datetime))
 }
 
-#[derive(Clone, Copy, Default)]
-pub struct TimestampGenerator {
-    timestamp: NaiveDateTime,
-}
+#[cfg(feature = "ntp")]
+pub mod ntp {
+    use core::net::SocketAddr;
 
-impl NtpTimestampGenerator for TimestampGenerator {
-    fn init(&mut self) {
-        self.timestamp = get_rtc_time().unwrap();
+    use chrono::{NaiveDateTime, TimeDelta};
+    use embassy_net::{
+        Stack,
+        udp::{PacketMetadata, UdpSocket},
+    };
+    use smoltcp::wire::DnsQueryType;
+    use sntpc::{NtpContext, NtpTimestampGenerator};
+
+    const NTP_SERVER_POOL: &[&str] = &["pool.ntp.org"];
+    const NTP_PORT: u16 = 123;
+
+    #[derive(Clone, Copy, Default)]
+    pub struct TimestampGenerator {
+        timestamp: NaiveDateTime,
     }
 
-    fn timestamp_sec(&self) -> u64 {
-        self.timestamp.and_utc().timestamp().try_into().unwrap()
+    impl NtpTimestampGenerator for TimestampGenerator {
+        fn init(&mut self) {
+            self.timestamp = super::get_rtc_time().unwrap();
+        }
+
+        fn timestamp_sec(&self) -> u64 {
+            self.timestamp.and_utc().timestamp().try_into().unwrap()
+        }
+
+        fn timestamp_subsec_micros(&self) -> u32 {
+            self.timestamp.and_utc().timestamp_subsec_micros()
+        }
     }
 
-    fn timestamp_subsec_micros(&self) -> u32 {
-        self.timestamp.and_utc().timestamp_subsec_micros()
-    }
-}
-
-const NTP_SERVER_POOL: &[&str] = &["pool.ntp.org"];
-const NTP_PORT: u16 = 123;
-
-pub async fn try_resolve_from_pool(
-    stack: Stack<'_>,
-    pool: &'static [&'static str],
-) -> Option<(
-    &'static str,
-    heapless::Vec<smoltcp::wire::IpAddress, { smoltcp::config::DNS_MAX_RESULT_COUNT }>,
-)> {
-    for address in pool {
-        match stack.dns_query(address, DnsQueryType::A).await {
-            Ok(res) => {
-                if res.is_empty() {
-                    log::warn!("No IP addresses returned for NTP server `{address}`");
-                } else {
-                    return Some((address, res));
+    pub async fn try_resolve_from_pool(
+        stack: Stack<'_>,
+        pool: &'static [&'static str],
+    ) -> Option<(
+        &'static str,
+        heapless::Vec<smoltcp::wire::IpAddress, { smoltcp::config::DNS_MAX_RESULT_COUNT }>,
+    )> {
+        for address in pool {
+            match stack.dns_query(address, DnsQueryType::A).await {
+                Ok(res) => {
+                    if res.is_empty() {
+                        log::warn!("No IP addresses returned for NTP server `{address}`");
+                    } else {
+                        return Some((address, res));
+                    }
+                }
+                Err(e) => {
+                    log::error!("Failed to query IP address for NTP server `{address}`: {e:?}");
                 }
             }
-            Err(e) => {
-                error!("Failed to query IP address for NTP server `{address}`: {e:?}");
+        }
+        None
+    }
+
+    /// Get time from an NTP server
+    pub async fn get_ntp_time(stack: Stack<'_>) -> Option<NaiveDateTime> {
+        stack.wait_config_up().await;
+        let (ntp_server_name, ntp_addresses) =
+            try_resolve_from_pool(stack, NTP_SERVER_POOL).await?;
+
+        let mut rx_meta = [PacketMetadata::EMPTY; 16];
+        let mut rx_buffer = [0; 4096];
+        let mut tx_meta = [PacketMetadata::EMPTY; 16];
+        let mut tx_buffer = [0; 4096];
+
+        let mut socket = UdpSocket::new(
+            stack,
+            &mut rx_meta,
+            &mut rx_buffer,
+            &mut tx_meta,
+            &mut tx_buffer,
+        );
+        socket.bind(NTP_PORT).unwrap();
+
+        let ntp_context = NtpContext::new(TimestampGenerator::default());
+
+        for address in ntp_addresses {
+            let ntp_result =
+                sntpc::get_time(SocketAddr::from((address, NTP_PORT)), &socket, ntp_context).await;
+
+            match ntp_result {
+                Ok(time) => {
+                    let new_datetime = NaiveDateTime::UNIX_EPOCH
+                        + TimeDelta::new(
+                            time.sec().into(),
+                            sntpc::fraction_to_nanoseconds(time.sec_fraction()),
+                        )
+                        .unwrap();
+                    return Some(new_datetime);
+                }
+                Err(e) => {
+                    log::error!(
+                        "Failed to synchronize time from server `{ntp_server_name}` at IP `{address}`: {e:?}"
+                    );
+                }
             }
         }
+        None
     }
-    None
-}
 
-/// Get time from an NTP server
-pub async fn get_ntp_time(stack: Stack<'_>) -> Option<NaiveDateTime> {
-    stack.wait_config_up().await;
-    let (ntp_server_name, ntp_addresses) = try_resolve_from_pool(stack, NTP_SERVER_POOL).await?;
-
-    let mut rx_meta = [PacketMetadata::EMPTY; 16];
-    let mut rx_buffer = [0; 4096];
-    let mut tx_meta = [PacketMetadata::EMPTY; 16];
-    let mut tx_buffer = [0; 4096];
-
-    let mut socket = UdpSocket::new(
-        stack,
-        &mut rx_meta,
-        &mut rx_buffer,
-        &mut tx_meta,
-        &mut tx_buffer,
-    );
-    socket.bind(NTP_PORT).unwrap();
-
-    let ntp_context = NtpContext::new(TimestampGenerator::default());
-
-    for address in ntp_addresses {
-        let ntp_result =
-            sntpc::get_time(SocketAddr::from((address, NTP_PORT)), &socket, ntp_context).await;
-
-        match ntp_result {
-            Ok(time) => {
-                let new_datetime = NaiveDateTime::UNIX_EPOCH
-                    + TimeDelta::new(
-                        time.sec().into(),
-                        sntpc::fraction_to_nanoseconds(time.sec_fraction()),
-                    )
-                    .unwrap();
-                return Some(new_datetime);
-            }
-            Err(e) => {
-                error!("Failed to synchronize time from server `{ntp_server_name}` at IP `{address}`: {e:?}");
-            }
+    /// Set RTC time to what we get from an NTP server
+    pub async fn synchronize_ntp_time_to_rtc(net_stack: Stack<'_>) {
+        let network_time = get_ntp_time(net_stack).await;
+        if let Some(new_time) = network_time {
+            super::set_rtc_clock(&new_time).unwrap();
+        } else {
+            log::error!("Failed to synchronize time over the network");
         }
-    }
-    None
-}
-
-/// Set RTC time to what we get from an NTP server
-pub async fn synchronize_ntp_time_to_rtc(net_stack: Stack<'_>) {
-    let network_time = get_ntp_time(net_stack).await;
-    if let Some(new_time) = network_time {
-        set_rtc_clock(&new_time).unwrap();
-    } else {
-        error!("Failed to synchronize time over the network");
     }
 }

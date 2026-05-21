@@ -4,12 +4,15 @@
 use core::cell::RefCell;
 
 use calendar_utils::CalendarMonth;
+#[cfg(feature = "calendar-style-triplet")]
+use chrono::Months;
 use chrono::{Days, NaiveTime};
 use display_interface_spi::SPIInterface;
-use draw::draw_calendar;
+use draw::draw_calendars;
 use ds323x::{Ds323x, ic::DS3231, interface::I2cInterface};
 use embassy_embedded_hal::shared_bus::{asynch::spi::SpiDevice, blocking::i2c::I2cDevice};
 use embassy_executor::Spawner;
+#[cfg(feature = "networking")]
 use embassy_net::{
     DhcpConfig, StackResources,
     dns::DnsSocket,
@@ -33,12 +36,17 @@ use esp_hal::{
     time::RateExtU32,
 };
 use esp_hal_embassy::main;
+#[cfg(feature = "networking")]
 use esp_wifi::{EspWifiController, wifi::WifiStaDevice};
+#[cfg(feature = "isdayoff")]
 use isdayoff::{HttpClientConcrete, update_days_off_mask};
 #[allow(unused_imports)]
 use log::{debug, error, info, trace, warn};
+#[cfg(feature = "isdayoff")]
 use reqwless::client::HttpClient;
-use time::{RTC_CLOCK, get_local_rtc_time, synchronize_ntp_time_to_rtc};
+#[cfg(feature = "ntp")]
+use time::ntp::synchronize_ntp_time_to_rtc;
+use time::{RTC_CLOCK, get_local_rtc_time};
 
 extern crate alloc;
 
@@ -46,13 +54,13 @@ use weact_studio_epd::{
     TriColor, WeActStudio290TriColorDriver,
     graphics::{Display290TriColor, DisplayRotation},
 };
-use wifi::{connection_handler_task, net_runner_task};
 
 mod calendar_utils;
 mod draw;
 #[cfg(feature = "isdayoff")]
 mod isdayoff;
 mod time;
+#[cfg(feature = "networking")]
 mod wifi;
 
 pub type SpiBusMutex = Mutex<CriticalSectionRawMutex, SpiDmaBus<'static, Async>>;
@@ -72,6 +80,11 @@ macro_rules! mk_static {
         x
     }};
 }
+
+#[cfg(not(any(feature = "calendar-style-bignum", feature = "calendar-style-triplet")))]
+compile_error!("Configure one of the styles: `calendar-style-bignum` or `calendar-style-triplet`!");
+#[cfg(all(feature = "calendar-style-bignum", feature = "calendar-style-triplet"))]
+compile_error!("Configure only one style!");
 
 #[main]
 async fn main(spawner: Spawner) {
@@ -96,36 +109,25 @@ async fn main(spawner: Spawner) {
 
     let mut rng = Rng::new(peripherals.RNG);
 
-    info!("WiFi init");
+    #[cfg(feature = "networking")]
+    let net_stack = {
+        let timg0 = esp_hal::timer::timg::TimerGroup::new(peripherals.TIMG0);
 
-    let timg0 = esp_hal::timer::timg::TimerGroup::new(peripherals.TIMG0);
-    let wifi_init = mk_static!(
-        EspWifiController<'static>,
-        esp_wifi::init(timg0.timer0, rng, peripherals.RADIO_CLK).unwrap()
-    );
+        let wifi_interface = wifi::init_wifi(
+            &spawner,
+            timg0,
+            rng,
+            peripherals.RADIO_CLK,
+            peripherals.WIFI,
+        );
 
-    let (wifi_interface, controller) =
-        esp_wifi::wifi::new_with_mode(&*wifi_init, peripherals.WIFI, WifiStaDevice).unwrap();
+        wifi::init_networking(&spawner, rng, wifi_interface)
+    };
 
-    info!("Initializing network stack");
+    #[cfg(feature = "isdayoff")]
+    let http_client = wifi::init_tcp_http(net_stack);
 
-    let net_config = embassy_net::Config::dhcpv4({
-        let mut config = DhcpConfig::default();
-        config.hostname = Some("ESP32-Epaper-Calendar".try_into().unwrap());
-        config
-    });
-    let net_seed = ((rng.random() as u64) << 32) | rng.random() as u64;
-
-    let (net_stack, net_runner) = embassy_net::new(
-        wifi_interface,
-        net_config,
-        mk_static!(StackResources<3>, StackResources::<3>::new()),
-        net_seed,
-    );
-
-    spawner.spawn(connection_handler_task(controller)).ok();
-    spawner.spawn(net_runner_task(net_runner)).ok();
-
+    /*
     info!("TCP Client init");
 
     let tcp_state =
@@ -138,6 +140,7 @@ async fn main(spawner: Spawner) {
     let http_client = mk_static!(HttpClientConcrete, {
         HttpClient::new(&*tcp_client, &*dns_socket)
     });
+    */
 
     info!("Initializing I2C");
 
@@ -207,7 +210,7 @@ async fn main(spawner: Spawner) {
     let mut driver = WeActStudio290TriColorDriver::new(spi_interface, busy_in, rst, delay);
     driver.init().await.unwrap();
 
-    info!("buffer init");
+    info!("Display buffer init");
 
     let mut display = Display290TriColor::new();
     display.set_rotation(DisplayRotation::Rotate90);
@@ -223,23 +226,50 @@ async fn main(spawner: Spawner) {
         // todo: time sync
         // todo: fetch and use isdayoff
 
-        info!("NTP time sync");
-        synchronize_ntp_time_to_rtc(net_stack).await;
+        #[cfg(feature = "ntp")]
+        {
+            info!("NTP time sync");
+            synchronize_ntp_time_to_rtc(net_stack).await;
+        }
 
         info!("Getting time");
         let local_time = get_local_rtc_time().unwrap();
         let mut calendar = CalendarMonth::from_date(local_time.date_naive());
+        #[cfg(feature = "calendar-style-triplet")]
+        let mut calendar_before =
+            CalendarMonth::from_date(local_time.date_naive() - Months::new(1));
+        #[cfg(feature = "calendar-style-triplet")]
+        let mut calendar_after = CalendarMonth::from_date(local_time.date_naive() + Months::new(1));
 
-        info!("Getting isdayoff data");
-        update_days_off_mask(http_client, &mut calendar)
-            .await
-            .unwrap();
+        #[cfg(feature = "isdayoff")]
+        {
+            net_stack.wait_config_up().await;
+            info!("Getting isdayoff data");
+            update_days_off_mask(http_client, &mut calendar)
+                .await
+                .unwrap();
+            #[cfg(feature = "calendar-style-triplet")]
+            update_days_off_mask(http_client, &mut calendar_before)
+                .await
+                .unwrap();
+            #[cfg(feature = "calendar-style-triplet")]
+            update_days_off_mask(http_client, &mut calendar_after)
+                .await
+                .unwrap();
+        }
 
         info!("Drawing calendar");
         display.clear(TriColor::White);
-        draw_calendar(&local_time, calendar, &mut display)
-            .await
-            .unwrap();
+        draw_calendars(
+            &local_time,
+            calendar,
+            #[cfg(feature = "calendar-style-triplet")]
+            calendar_before,
+            #[cfg(feature = "calendar-style-triplet")]
+            calendar_after,
+            &mut display,
+        )
+        .unwrap();
         driver.wake_up().await.unwrap();
         driver.full_update(&display).await.unwrap();
         driver.sleep().await.unwrap();
