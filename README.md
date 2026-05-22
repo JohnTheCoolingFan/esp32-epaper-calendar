@@ -42,3 +42,18 @@ Add `-M` flag to see the bootup log
 
 - isdayoff country can be changed in [`src/bin/async_main/isdayoff.rs`](src/bin/async_main/isdayoff.rs) by changing the `TARGET_COUNTRY` constant
 - Timezone can be changed in [`src/bin/async_main/time.rs`](src/bin/async_main/time.rs) by changing the `LOCAL_TZ` constant
+
+## Pin mapping
+
+| GPIO number | Board label | Destination            |
+|-------------|-------------|------------------------|
+| 11          | A4          | I2C SDA (DS3231)       |
+| 12          | A5          | I2C SCK (DS3231)       |
+| 5           | D2          | Display CS             |
+| 4           | A3          | Display BUSY           |
+| 10          | D7          | Display RST / RES      |
+| 17          | D8          | Display D/C            |
+| 18          | D9          | Display SCL / SPI SCK  |
+| 21          | D10         | Display SDA / SPI MOSI |
+
+Power is 3.3v from the dev board for both display and clock.
