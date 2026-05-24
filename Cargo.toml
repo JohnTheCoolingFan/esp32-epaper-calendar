@@ -5,13 +5,14 @@ edition = "2024"
 license = "GPL-3.0"
 
 [features]
-default = ["isdayoff", "ntp", "calendar-style-bignum"]
-isdayoff = ["dep:reqwless", "networking"]
+default = ["isdayoff", "weather", "ntp", "calendar-style-bignum"]
 ntp = ["dep:sntpc", "dep:smoltcp", "networking"]
-weather = ["dep:reqwless", "networking"]
+isdayoff = ["http_apis"]
+weather = ["http_apis"]
 monthdate-packed = []
 calendar-style-bignum = []
 calendar-style-triplet = []
+http_apis = ["dep:reqwless", "networking"]
 networking = ["dep:esp-wifi", "embassy-net"]
 
 [dependencies]
