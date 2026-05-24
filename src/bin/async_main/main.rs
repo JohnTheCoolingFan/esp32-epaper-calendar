@@ -31,7 +31,7 @@ use esp_hal::{
 };
 use esp_hal_embassy::main;
 #[cfg(feature = "isdayoff")]
-use isdayoff::update_days_off_mask;
+use http_apis::isdayoff::update_days_off_mask;
 #[allow(unused_imports)]
 use log::{debug, error, info, trace, warn};
 #[cfg(feature = "ntp")]
@@ -47,7 +47,7 @@ use weact_studio_epd::{
 
 mod calendar_utils;
 mod draw;
-#[cfg(any(feature = "isdayoff", feature = "weather"))]
+#[cfg(feature = "http_apis")]
 mod http_apis;
 mod time;
 #[cfg(feature = "networking")]
@@ -81,7 +81,14 @@ compile_error!("Configure only one style!");
     not(any(feature = "isdayoff", feature = "ntp", feature = "weather"))
 ))]
 compile_error!(
-    "Networking is enabled, but nothing that requires networking is enabled.\nDo not use the networking feature, it's just a common dependency for other features that require networking."
+    "Networking is enabled, but nothing that requires networking is enabled.\nDo not enable the networking feature manually, it's just a common dependency for other features that require networking."
+);
+#[cfg(all(
+    feature = "http_apis",
+    not(any(feature = "isdayoff", feature = "weather"))
+))]
+compile_error!(
+    "http_apis feature is enabled, but nothing that requires http api access is enabled.\nDo not enable the http_apis feature manually, it's just a common dependency for other features that call to HTTP APIs."
 );
 
 #[main]
@@ -122,8 +129,8 @@ async fn main(spawner: Spawner) {
         wifi::init_networking(&spawner, rng, wifi_interface)
     };
 
-    #[cfg(feature = "isdayoff")]
-    let http_client = wifi::init_tcp_http(net_stack);
+    #[cfg(feature = "http_apis")]
+    let http_client = http_apis::init_tcp_http(net_stack);
 
     info!("Initializing I2C");
 

@@ -22,7 +22,7 @@ use esp_wifi::{
 use log::{debug, error, info, trace, warn};
 
 #[cfg(feature = "isdayoff")]
-use crate::isdayoff::HttpClientConcrete;
+use crate::http_apis::HttpClientConcrete;
 
 const SSID: &str = env!("SSID");
 const WIFI_PASSWORD: &str = env!("WIFI_PASSWORD");
@@ -84,21 +84,6 @@ pub fn init_networking(
     net_stack
 }
 
-#[cfg(feature = "isdayoff")]
-pub fn init_tcp_http(net_stack: Stack<'static>) -> &'static mut HttpClientConcrete {
-    info!("TCP/HTTP Client init");
-    let tcp_state =
-        mk_static!(TcpClientState<1, 4096, 4096>, {TcpClientState::<1, 4096, 4096>::new()});
-    let tcp_client = mk_static!(TcpClient<1, 4096, 4096>, {
-        TcpClient::new(net_stack, &*tcp_state)
-    });
-    let dns_socket = mk_static!(DnsSocket<'static>, DnsSocket::new(net_stack));
-
-    mk_static!(HttpClientConcrete, {
-        reqwless::client::HttpClient::new(&*tcp_client, &*dns_socket)
-    })
-}
-
 #[embassy_executor::task]
 pub async fn connection_handler_task(mut controller: WifiController<'static>) {
     info!("Starting wifi connection handler task");
@@ -124,7 +109,7 @@ pub async fn connection_handler_task(mut controller: WifiController<'static>) {
         match controller.connect_async().await {
             Ok(_) => info!("Wifi connected"),
             Err(e) => {
-                error!("Faield to connect to wifi: {e:?}");
+                error!("Failed to connect to wifi: {e:?}");
                 Timer::after_secs(1).await
             }
         }
