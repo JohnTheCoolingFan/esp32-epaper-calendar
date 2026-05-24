@@ -35,7 +35,7 @@ Add `-M` flag to see the bootup log
 
 - `isdayoff` - Enable days off fetching, currently via https://isdayoff.ru/
 - `ntp` - enable SNTP time sync, if disabled, will try to use your local time while flashing
-- `weather` - enable fetching weather forecast from openmeteo.org API
+- `weather` - enable fetching weather forecast from open-meteo.com API
 - `calendar-style-bignum` or `calendar-style-triplet` - enable ONE to select the display style
 - `monthdate-packed` - experimental representation of MonthDate, potentially better memory utilization
 
