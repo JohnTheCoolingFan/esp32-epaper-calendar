@@ -8,12 +8,14 @@ license = "GPL-3.0"
 default = ["isdayoff", "weather", "ntp", "calendar-style-bignum"]
 ntp = ["dep:sntpc", "dep:smoltcp", "networking"]
 isdayoff = ["http_apis"]
-weather = ["http_apis"]
+weather = ["http_apis", "dep:serde", "dep:serde-json-core"]
 monthdate-packed = []
 calendar-style-bignum = []
 calendar-style-triplet = []
 http_apis = ["dep:reqwless", "networking"]
 networking = ["dep:esp-wifi", "embassy-net"]
+serde_json = []
+serde-json-core = ["dep:serde-json-core"]
 
 [dependencies]
 esp-hal = { version = "0.23.0", features = [
@@ -70,6 +72,8 @@ paste = "1.0.15"
 static_cell      = { version = "2.1.0",  features = ["nightly"] }
 heapless = { version = "0.8.0", default-features = false }
 log = { version = "0.4.21" }
+serde = { version = "1.0.228", default-features = false, optional = true, features = ["alloc", "derive"] }
+serde-json-core = { version = "0.6.0", default-features = false, optional = true, features = ["heapless"] }
 
 [build-dependencies]
 chrono = { version = "0.4.39", default-features = false, features = ["now", "alloc"] }

@@ -12,6 +12,7 @@ use heapless::LinearMap;
 use log::{error, info};
 use reqwless::{client::HttpClient, request::Method, response::StatusCode};
 
+use super::HttpClientConcrete;
 use crate::calendar_utils::{CalendarMonth, DaysOffMask, MonthDate};
 
 /// Country to fetch the isdayoff data for
@@ -96,9 +97,6 @@ impl TargetCountry {
         }
     }
 }
-
-pub type HttpClientConcrete =
-    HttpClient<'static, TcpClient<'static, 1, 4096, 4096>, DnsSocket<'static>>;
 
 pub async fn update_days_off_mask(
     client: &mut HttpClientConcrete,
