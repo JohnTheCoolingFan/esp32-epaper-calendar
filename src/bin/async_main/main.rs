@@ -76,6 +76,14 @@ compile_error!("Configure one of the styles: `calendar-style-bignum` or `calenda
 #[cfg(all(feature = "calendar-style-bignum", feature = "calendar-style-triplet"))]
 compile_error!("Configure only one style!");
 
+#[cfg(all(
+    feature = "networking",
+    not(any(feature = "isdayoff", feature = "ntp"))
+))]
+compile_error!(
+    "Networking is enabled, but nothing that requires networking is enabled.\nDo not use the networking feature, it's just a common dependency for other features that require networking."
+);
+
 #[main]
 async fn main(spawner: Spawner) {
     let peripherals = esp_hal::init({
