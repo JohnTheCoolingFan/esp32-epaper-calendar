@@ -47,8 +47,8 @@ use weact_studio_epd::{
 
 mod calendar_utils;
 mod draw;
-#[cfg(feature = "isdayoff")]
-mod isdayoff;
+#[cfg(any(feature = "isdayoff", feature = "weather"))]
+mod http_apis;
 mod time;
 #[cfg(feature = "networking")]
 mod wifi;
@@ -78,7 +78,7 @@ compile_error!("Configure only one style!");
 
 #[cfg(all(
     feature = "networking",
-    not(any(feature = "isdayoff", feature = "ntp"))
+    not(any(feature = "isdayoff", feature = "ntp", feature = "weather"))
 ))]
 compile_error!(
     "Networking is enabled, but nothing that requires networking is enabled.\nDo not use the networking feature, it's just a common dependency for other features that require networking."

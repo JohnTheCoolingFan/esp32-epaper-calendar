@@ -8,6 +8,7 @@ license = "GPL-3.0"
 default = ["isdayoff", "ntp", "calendar-style-bignum"]
 isdayoff = ["dep:reqwless", "networking"]
 ntp = ["dep:sntpc", "dep:smoltcp", "networking"]
+weather = ["dep:reqwless", "networking"]
 monthdate-packed = []
 calendar-style-bignum = []
 calendar-style-triplet = []
