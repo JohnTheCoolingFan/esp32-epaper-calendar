@@ -13,24 +13,17 @@ use crate::{
     http_apis::weather::{ForecastSummary, ForecastSummaryPeriod},
 };
 
+const ICON_SIZE: u32 = 32;
+
 pub fn draw_forecast<D: DrawTarget<Color = TriColor>>(
     forecast: ForecastSummary,
     display: &mut D,
 ) -> Result<(), D::Error> {
-    let anchor = Point::new((228 - SMALL_ICON_SIZE / 2) as i32, 60);
-    let offset = Point::new(SMALL_ICON_SIZE as i32 + 8, 0);
+    let anchor = Point::new((228 - ICON_SIZE / 2) as i32, 60);
+    let offset = Point::new(ICON_SIZE as i32 + 8, 0);
     draw_forecast_period_at(forecast.day, anchor, display)?;
     draw_forecast_period_at(forecast.evening, anchor + offset, display)?;
     draw_forecast_period_at(forecast.morning, anchor - offset, display)?;
-    Ok(())
-}
-
-fn text_black_7_at<D: DrawTarget<Color = TriColor>>(
-    text: &str,
-    at: Point,
-    display: &mut D,
-) -> Result<(), D::Error> {
-    Text::with_text_style(text, at, STYLE_BLACK_7, TextStyle::default()).draw(display)?;
     Ok(())
 }
 
@@ -39,46 +32,56 @@ fn draw_forecast_period_at<D: DrawTarget<Color = TriColor>>(
     pos: Point,
     display: &mut D,
 ) -> Result<(), D::Error> {
-    draw_small_icon_at(
+    draw_weather_icon_at(
         pos,
         super::icons::weather_icons::icon_id_to_icon(forecast_period.weather_code_max),
         display,
     )?;
 
-    let temp_anchor = pos + Point::new(4, SMALL_ICON_SIZE as i32 + 8);
+    let temp_anchor = pos + Point::new(4, ICON_SIZE as i32 + 8);
 
-    text_black_7_at(
+    Text::with_text_style(
         &format!("{:+.0}", forecast_period.apparent_temperature_range.1),
         temp_anchor,
-        display,
-    )?;
-    text_black_7_at(
+        STYLE_BLACK_7,
+        TextStyle::default(),
+    )
+    .draw(display)?;
+    Text::with_text_style(
         &format!("{:+.0}", forecast_period.apparent_temperature_range.0),
         temp_anchor + Point::new(0, 8),
-        display,
-    )?;
-    text_black_7_at("°C", temp_anchor + Point::new(16, 4), display)?;
+        STYLE_BLACK_7,
+        TextStyle::default(),
+    )
+    .draw(display)?;
+    Text::with_text_style(
+        "°C",
+        temp_anchor + Point::new(16, 4),
+        STYLE_BLACK_7,
+        TextStyle::default(),
+    )
+    .draw(display)?;
 
-    let wind_anchor = pos + Point::new(0, SMALL_ICON_SIZE as i32 + 28);
+    let wind_anchor = pos + Point::new(0, ICON_SIZE as i32 + 28);
 
-    text_black_7_at(
+    Text::with_text_style(
         &format!("{:.0} m/s", forecast_period.wind_speed_avg),
         wind_anchor,
-        display,
-    )?;
+        STYLE_BLACK_7,
+        TextStyle::default(),
+    )
+    .draw(display)?;
 
     Ok(())
 }
 
-const SMALL_ICON_SIZE: u32 = 32;
-
-fn draw_small_icon_at<D: DrawTarget<Color = TriColor>>(
+fn draw_weather_icon_at<D: DrawTarget<Color = TriColor>>(
     position: Point,
     icon_data: &[u8],
     display: &mut D,
 ) -> Result<(), D::Error> {
     display.fill_contiguous(
-        &Rectangle::new(position, Size::new(SMALL_ICON_SIZE, SMALL_ICON_SIZE)),
+        &Rectangle::new(position, Size::new(ICON_SIZE, ICON_SIZE)),
         icon_data.iter().flat_map(|byte| {
             (0..8).map(|i| {
                 if *byte & (1 << i) == 0 {
