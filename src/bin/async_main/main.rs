@@ -252,6 +252,16 @@ async fn main(spawner: Spawner) {
                 .unwrap();
         }
 
+        #[cfg(all(feature = "calendar-style-bignum", feature = "weather"))]
+        let forecast = {
+            net_stack.wait_config_up().await;
+            info!("Getting weather forecast");
+            http_apis::weather::get_weather_forecast(http_client)
+                .await
+                .inspect_err(|err| error!("Error getting weather forecast data: {err}"))
+                .ok()
+        };
+
         info!("Drawing calendar");
         display.clear(TriColor::White);
         draw_calendars(
@@ -264,6 +274,10 @@ async fn main(spawner: Spawner) {
             &mut display,
         )
         .unwrap();
+        #[cfg(all(feature = "calendar-style-bignum", feature = "weather"))]
+        if let Some(forecast) = forecast {
+            draw::weather::draw_forecast(forecast).unwrap();
+        }
         driver.wake_up().await.unwrap();
         driver.full_update(&display).await.unwrap();
         driver.sleep().await.unwrap();
