@@ -276,7 +276,7 @@ async fn main(spawner: Spawner) {
         .unwrap();
         #[cfg(all(feature = "calendar-style-bignum", feature = "weather"))]
         if let Some(forecast) = forecast {
-            draw::weather::draw_forecast(forecast).unwrap();
+            draw::weather::draw_forecast(forecast, &mut display).unwrap();
         }
         driver.wake_up().await.unwrap();
         driver.full_update(&display).await.unwrap();

@@ -209,7 +209,7 @@ fn draw_current_day_big<D: DrawTarget<Color = TriColor>>(
 ) -> Result<(), D::Error> {
     use num_traits::FromPrimitive;
 
-    let anchor = Point::new(228, 50);
+    let anchor = Point::new(228, 28);
     let current_day = time.day() as u8;
     let is_day_off = calendar
         .days_iter()

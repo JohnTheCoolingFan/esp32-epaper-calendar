@@ -13,6 +13,7 @@ use weact_studio_epd::TriColor;
 use crate::calendar_utils::{CalendarMonth, all_weekdays_short_en};
 
 pub mod calendar;
+mod icons;
 mod text_styles;
 #[cfg(feature = "weather")]
 pub mod weather;

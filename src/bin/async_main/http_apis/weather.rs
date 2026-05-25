@@ -18,11 +18,11 @@ const LONGITUDE: &str = env!("WEATHER_LONGITUDE");
 #[derive(Debug, Clone)]
 pub struct ForecastSummary {
     /// 6:00 .. 12:00
-    morning: ForecastSummaryPeriod,
+    pub morning: ForecastSummaryPeriod,
     /// 12:00 .. 18:00
-    day: ForecastSummaryPeriod,
+    pub day: ForecastSummaryPeriod,
     /// 18:00 .. 23:00
-    evening: ForecastSummaryPeriod,
+    pub evening: ForecastSummaryPeriod,
 }
 
 #[derive(Debug, Clone)]
@@ -40,7 +40,7 @@ pub async fn get_weather_forecast(
     client: &mut HttpClientConcrete,
 ) -> Result<ForecastSummary, ForecastError> {
     let url = format!(
-        "http://api.open-meteo.com/v1/forecast?longitude={LONGITUDE}&latitude={LATITUDE}&hourly=apparent_temperature,weather_code,wind_speed_10m&wind_speed_unit=ms&timeformat=unixtime&timezone=auto&forecast+days=1"
+        "http://api.open-meteo.com/v1/forecast?longitude={LONGITUDE}&latitude={LATITUDE}&hourly=apparent_temperature,weather_code,wind_speed_10m&wind_speed_unit=ms&timeformat=unixtime&timezone=auto&forecast_days=1"
     );
 
     let mut rx_buf = [0_u8; 4096];
