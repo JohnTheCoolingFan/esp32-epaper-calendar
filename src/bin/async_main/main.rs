@@ -8,7 +8,7 @@ use calendar_utils::CalendarMonth;
 use chrono::Months;
 use chrono::{Days, NaiveTime};
 use display_interface_spi::SPIInterface;
-use draw::draw_calendars;
+use draw::calendar::draw_calendars;
 use ds323x::{Ds323x, ic::DS3231, interface::I2cInterface};
 use embassy_embedded_hal::shared_bus::{asynch::spi::SpiDevice, blocking::i2c::I2cDevice};
 use embassy_executor::Spawner;
