@@ -4,12 +4,12 @@ use embedded_graphics::{
     Drawable,
     prelude::{DrawTarget, Point, Size},
     primitives::Rectangle,
-    text::{Text, TextStyle},
+    text::{Alignment, Text, TextStyle},
 };
 use weact_studio_epd::TriColor;
 
 use crate::{
-    draw::text_styles::STYLE_BLACK_7,
+    draw::text_styles::{STYLE_BLACK_7, STYLE_BLACK_9},
     http_apis::weather::{ForecastSummary, ForecastSummaryPeriod},
 };
 
@@ -62,13 +62,13 @@ fn draw_forecast_period_at<D: DrawTarget<Color = TriColor>>(
     )
     .draw(display)?;
 
-    let wind_anchor = pos + Point::new(0, ICON_SIZE as i32 + 28);
+    let wind_anchor = pos + Point::new(ICON_SIZE as i32 / 2, ICON_SIZE as i32 + 28);
 
     Text::with_text_style(
         &format!("{:.0} m/s", forecast_period.wind_speed_avg),
         wind_anchor,
         STYLE_BLACK_7,
-        TextStyle::default(),
+        TextStyle::with_alignment(Alignment::Center),
     )
     .draw(display)?;
 
