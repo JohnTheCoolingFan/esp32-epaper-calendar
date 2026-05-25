@@ -24,7 +24,7 @@ pub type HttpClientConcrete =
 
 #[cfg(feature = "isdayoff")]
 pub fn init_tcp_http(net_stack: Stack<'static>) -> &'static mut HttpClientConcrete {
-    info!("TCP/HTTP Client init");
+    log::info!("TCP/HTTP Client init");
     let tcp_state =
         mk_static!(TcpClientState<1, 4096, 4096>, {TcpClientState::<1, 4096, 4096>::new()});
     let tcp_client = mk_static!(TcpClient<1, 4096, 4096>, {

@@ -1,3 +1,4 @@
+use alloc::format;
 use core::{cmp::Ordering, error::Error, fmt::Display};
 
 use reqwless::response::StatusCode;
@@ -36,7 +37,7 @@ pub struct ForecastSummaryPeriod {
 // ---- Main method ---- //
 
 pub async fn get_weather_forecast(
-    client: &HttpClientConcrete,
+    client: &mut HttpClientConcrete,
 ) -> Result<ForecastSummary, ForecastError> {
     let url = format!(
         "http://api.open-meteo.com/v1/forecast?longitude={LONGITUDE}&latitude={LATITUDE}&hourly=apparent_temperature,weather_code,wind_speed_10m&wind_speed_unit=ms&timeformat=unixtime&timezone=auto&forecast+days=1"
@@ -83,8 +84,8 @@ impl OpenMeteoResponse {
     fn summarize(self) -> ForecastSummary {
         let [morning, day, evening] = [(6..12), (12..18), (12..18)].map(|time_range| {
             let (temps, winds, wcodes) = (
-                &self.hourly.apparent_temperature[time_range],
-                &self.hourly.wind_speed_10m[time_range],
+                &self.hourly.apparent_temperature[time_range.clone()],
+                &self.hourly.wind_speed_10m[time_range.clone()],
                 &self.hourly.weather_code[time_range],
             );
             let temp_max = *temps
@@ -99,7 +100,7 @@ impl OpenMeteoResponse {
                 .iter()
                 .max()
                 .expect("Weather codes array must not be empty");
-            let wind_avg = winds.iter().sum() / winds.len();
+            let wind_avg = winds.iter().copied().sum::<f32>() / winds.len() as f32;
 
             ForecastSummaryPeriod {
                 apparent_temperature_range: (temp_min, temp_max),
