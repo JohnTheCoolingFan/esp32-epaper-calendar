@@ -16,5 +16,5 @@ target/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-# WiFi credentials file
-wifi-creds
+# Wifi credentials, coordinates, and generally anything that the build might require, and usually confidential.
+buildtime-vars

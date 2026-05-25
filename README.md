@@ -23,6 +23,8 @@
 
 ## Flashing:
 
+First, you'll have to define some buildtime variables. You can specify them before build/flash command invocation (`WIFI_SSID="Your SSID here" cargo espflash ...`), or by putting them in a file `buildtime-vars`, one pair of variables on each line.
+
 You will need https://crates.io/crates/cargo-espflash and the esp toolchain set up
 
 `cargo espflash flash` for default configuration (`ntp`, `isdayoff`, `calendar-style-bignum`)
