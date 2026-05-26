@@ -6,11 +6,10 @@ use alloc::format;
 use core::str::from_utf8;
 
 use chrono::Months;
-use embassy_net::{dns::DnsSocket, tcp::client::TcpClient};
+use defmt::{error, info, warn};
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, mutex::Mutex};
 use heapless::LinearMap;
-use log::{error, info};
-use reqwless::{client::HttpClient, request::Method, response::StatusCode};
+use reqwless::{request::Method, response::StatusCode};
 
 use super::HttpClientConcrete;
 use crate::calendar_utils::{CalendarMonth, DaysOffMask, MonthDate};
@@ -113,7 +112,7 @@ pub async fn get_days_off_mask(
 ) -> Result<Option<u32>, reqwless::Error> {
     let year = date.year();
     let month = date.month().number_from_month();
-    info!("Fetching isdayoff data for year {year} month {month}");
+    info!("Fetching isdayoff data for year {} month {}", year, month);
     let cc = TARGET_COUNTRY.to_countrycode();
     let url = format!("http://isdayoff.ru/api/getdata?year={year}&month={month}&cc={cc}");
     let mut rx_buf = [0; 4096];
@@ -133,21 +132,21 @@ pub async fn get_days_off_mask(
             // Why is this service using 400 as status code for "service error"? It should be 5XX.
             // It even uses 400 for "not found" like favicon.ico!
             if body == b"100" {
-                log::error!("isdayoff request failed, invalid date");
+                error!("isdayoff request failed, invalid date");
             } else if body == b"199" {
-                log::error!("isdayoff request failed, backend error");
+                error!("isdayoff request failed, backend error");
             } else {
                 let body = from_utf8(&*body).unwrap();
-                log::warn!("Unexpected error response: {body}")
+                warn!("Unexpected error response: {}", body)
             }
             Ok(None)
         }
         StatusCode(404) => {
-            log::error!("isdayoff found no data");
+            error!("isdayoff found no data");
             Ok(None)
         }
         _ => {
-            log::warn!("Unexpected status code: {}", response.status.0);
+            warn!("Unexpected status code: {}", response.status.0);
             Ok(None)
         }
     }

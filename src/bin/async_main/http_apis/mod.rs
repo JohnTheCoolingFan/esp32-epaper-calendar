@@ -24,7 +24,10 @@ pub type HttpClientConcrete =
 
 #[cfg(feature = "isdayoff")]
 pub fn init_tcp_http(net_stack: Stack<'static>) -> &'static mut HttpClientConcrete {
-    log::info!("TCP/HTTP Client init");
+    use defmt::info;
+
+    info!("TCP/HTTP Client init");
+
     let tcp_state =
         mk_static!(TcpClientState<1, 4096, 4096>, {TcpClientState::<1, 4096, 4096>::new()});
     let tcp_client = mk_static!(TcpClient<1, 4096, 4096>, {
@@ -32,7 +35,11 @@ pub fn init_tcp_http(net_stack: Stack<'static>) -> &'static mut HttpClientConcre
     });
     let dns_socket = mk_static!(DnsSocket<'static>, DnsSocket::new(net_stack));
 
-    mk_static!(HttpClientConcrete, {
+    let client = mk_static!(HttpClientConcrete, {
         reqwless::client::HttpClient::new(&*tcp_client, &*dns_socket)
-    })
+    });
+
+    info!("TCP/HTTP Client init done");
+
+    client
 }

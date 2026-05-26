@@ -7,6 +7,8 @@ use calendar_utils::CalendarMonth;
 #[cfg(feature = "calendar-style-triplet")]
 use chrono::Months;
 use chrono::{Days, NaiveTime};
+#[allow(unused_imports)]
+use defmt::{debug, error, info, trace, warn};
 use display_interface_spi::SPIInterface;
 use draw::calendar::draw_calendars;
 use ds323x::{Ds323x, ic::DS3231, interface::I2cInterface};
@@ -32,8 +34,6 @@ use esp_hal::{
 use esp_hal_embassy::main;
 #[cfg(feature = "isdayoff")]
 use http_apis::isdayoff::update_days_off_mask;
-#[allow(unused_imports)]
-use log::{debug, error, info, trace, warn};
 #[cfg(feature = "ntp")]
 use time::ntp::synchronize_ntp_time_to_rtc;
 use time::{RTC_CLOCK, get_local_rtc_time};
@@ -103,8 +103,6 @@ async fn main(spawner: Spawner) {
 
     let delay = embassy_time::Delay;
 
-    esp_println::logger::init_logger_from_env();
-
     let timg1 = esp_hal::timer::timg::TimerGroup::new(peripherals.TIMG1);
     esp_hal_embassy::init(timg1.timer0);
 
@@ -170,6 +168,7 @@ async fn main(spawner: Spawner) {
     let dma_channel = peripherals.DMA_CH2;
     dma_channel.set_priority(DmaPriority::Priority0);
 
+    #[allow(clippy::manual_div_ceil)]
     let (rx_buffer, rx_descriptors, tx_buffer, tx_descriptors) = dma_buffers!(32000);
     let dma_rx_buf = DmaRxBuf::new(rx_descriptors, rx_buffer).unwrap();
     let dma_tx_buf = DmaTxBuf::new(tx_descriptors, tx_buffer).unwrap();
@@ -258,7 +257,14 @@ async fn main(spawner: Spawner) {
             info!("Getting weather forecast");
             http_apis::weather::get_weather_forecast(http_client)
                 .await
-                .inspect_err(|err| error!("Error getting weather forecast data: {err}"))
+                .inspect_err(|err| {
+                    use defmt::Display2Format;
+
+                    error!(
+                        "Error getting weather forecast data: {}",
+                        Display2Format(err)
+                    )
+                })
                 .ok()
         };
 

@@ -1,6 +1,7 @@
 use alloc::format;
 use core::{cmp::Ordering, error::Error, fmt::Display};
 
+use defmt::error;
 use reqwless::response::StatusCode;
 use serde::Deserialize;
 
@@ -53,7 +54,13 @@ pub async fn get_weather_forecast(
             let (response_parsed, _) = serde_json_core::from_slice::<OpenMeteoResponse>(&*body)?;
             Ok(response_parsed.summarize())
         }
-        _ => Err(ForecastError::StatusCode(response.status)),
+        _ => {
+            error!(
+                "Weather forecast API returned a non-200 status code: {}",
+                response.status.0
+            );
+            Err(ForecastError::StatusCode(response.status))
+        }
     }
 }
 

@@ -9,7 +9,7 @@ use embedded_graphics::{
 use weact_studio_epd::TriColor;
 
 use crate::{
-    draw::text_styles::{STYLE_BLACK_7, STYLE_BLACK_9},
+    draw::text_styles::STYLE_BLACK_7,
     http_apis::weather::{ForecastSummary, ForecastSummaryPeriod},
 };
 

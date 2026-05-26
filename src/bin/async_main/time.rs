@@ -2,9 +2,10 @@ use core::ops::DerefMut;
 
 use chrono::{DateTime, NaiveDateTime};
 use chrono_tz::Tz;
+#[allow(unused_imports)]
+use defmt::{Debug2Format, error, info, warn};
 use ds323x::DateTimeAccess;
 use embassy_sync::once_lock::OnceLock;
-use log::error;
 
 use crate::{Ds323xTypeConcrete, RtcDs323x};
 
@@ -40,7 +41,7 @@ where
         })
         .map_err(RtcClockError::I2cClockError)
         .inspect_err(|e| {
-            error!("RTC clock error: {e:?}");
+            error!("RTC clock error: {}", Debug2Format(e));
         })
 }
 
@@ -78,6 +79,7 @@ pub mod ntp {
     use core::net::SocketAddr;
 
     use chrono::{NaiveDateTime, TimeDelta};
+    use defmt::{Debug2Format, error, info, warn};
     use embassy_net::{
         Stack,
         udp::{PacketMetadata, UdpSocket},
@@ -118,13 +120,17 @@ pub mod ntp {
             match stack.dns_query(address, DnsQueryType::A).await {
                 Ok(res) => {
                     if res.is_empty() {
-                        log::warn!("No IP addresses returned for NTP server `{address}`");
+                        warn!("No IP addresses returned for NTP server `{}`", address);
                     } else {
                         return Some((address, res));
                     }
                 }
                 Err(e) => {
-                    log::error!("Failed to query IP address for NTP server `{address}`: {e:?}");
+                    error!(
+                        "Failed to query IP address for NTP server `{}`: {}",
+                        address,
+                        Debug2Format(&e)
+                    );
                 }
             }
         }
@@ -134,8 +140,14 @@ pub mod ntp {
     /// Get time from an NTP server
     pub async fn get_ntp_time(stack: Stack<'_>) -> Option<NaiveDateTime> {
         stack.wait_config_up().await;
+        info!("Getting time from an NTP server");
         let (ntp_server_name, ntp_addresses) =
             try_resolve_from_pool(stack, NTP_SERVER_POOL).await?;
+
+        info!(
+            "Resolved ntp server `{}`, addresses: {:?}",
+            ntp_server_name, ntp_addresses
+        );
 
         let mut rx_meta = [PacketMetadata::EMPTY; 16];
         let mut rx_buffer = [0; 4096];
@@ -164,16 +176,22 @@ pub mod ntp {
                             time.sec().into(),
                             sntpc::fraction_to_nanoseconds(time.sec_fraction()),
                         )
-                        .unwrap();
+                        .expect("Timestamp is expected to be correct");
                     return Some(new_datetime);
                 }
                 Err(e) => {
-                    log::error!(
-                        "Failed to synchronize time from server `{ntp_server_name}` at IP `{address}`: {e:?}"
+                    error!(
+                        "Failed to synchronize time from server `{}` at IP `{}`: {:?}",
+                        ntp_server_name,
+                        address,
+                        Debug2Format(&e)
                     );
                 }
             }
         }
+
+        error!("Failed to get time from any NTP server");
+
         None
     }
 
@@ -183,7 +201,7 @@ pub mod ntp {
         if let Some(new_time) = network_time {
             super::set_rtc_clock(&new_time).unwrap();
         } else {
-            log::error!("Failed to synchronize time over the network");
+            error!("Failed to synchronize time over the network");
         }
     }
 }

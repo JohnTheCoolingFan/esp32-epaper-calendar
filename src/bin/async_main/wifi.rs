@@ -1,10 +1,8 @@
+use defmt::Debug2Format;
+#[allow(unused_imports)]
+use defmt::{debug, error, info, trace, warn};
 use embassy_executor::Spawner;
 use embassy_net::{DhcpConfig, Runner, Stack, StackResources};
-#[cfg(feature = "isdayoff")]
-use embassy_net::{
-    dns::DnsSocket,
-    tcp::client::{TcpClient, TcpClientState},
-};
 use embassy_time::Timer;
 use esp_hal::{
     peripherals::{RADIO_CLK, TIMG0, WIFI},
@@ -18,11 +16,6 @@ use esp_wifi::{
         WifiState,
     },
 };
-#[allow(unused_imports)]
-use log::{debug, error, info, trace, warn};
-
-#[cfg(feature = "isdayoff")]
-use crate::http_apis::HttpClientConcrete;
 
 const SSID: &str = env!("SSID");
 const WIFI_PASSWORD: &str = env!("WIFI_PASSWORD");
@@ -87,7 +80,10 @@ pub fn init_networking(
 #[embassy_executor::task]
 pub async fn connection_handler_task(mut controller: WifiController<'static>) {
     info!("Starting wifi connection handler task");
-    info!("Device capabilities: {:?}", controller.capabilities());
+    info!(
+        "Device capabilities: {}",
+        Debug2Format(&controller.capabilities())
+    );
     loop {
         if esp_wifi::wifi::wifi_state() == WifiState::StaConnected {
             controller.wait_for_event(WifiEvent::StaDisconnected).await;
@@ -109,7 +105,7 @@ pub async fn connection_handler_task(mut controller: WifiController<'static>) {
         match controller.connect_async().await {
             Ok(_) => info!("Wifi connected"),
             Err(e) => {
-                error!("Failed to connect to wifi: {e:?}");
+                error!("Failed to connect to wifi: {:?}", e);
                 Timer::after_secs(1).await
             }
         }
