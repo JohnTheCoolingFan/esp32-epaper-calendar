@@ -15,11 +15,15 @@
 
 ## Styles
 
-### Current month + Today as big number (`calendar-style-bignum`)
-<img width="1402" height="789" alt="bignum style" src="https://github.com/user-attachments/assets/cf7f5c94-fe9e-4ac6-bb59-17faeff497f3" />
+### Current month + Today as big number + Weather forecast (`calendar-style-bignum` + `weather`)
+<img width="4000" height="2250" alt="bignum style + weather" src="https://github.com/user-attachments/assets/9319819c-ebf2-4f4f-8e9b-e15fd2aa0305" />
+
+If weather forecast is not enabled, it will simply not be drawn.
 
 ### Current, previous and next months (`calendar-style-triplet`)
-<img width="1402" height="789" alt="triplet style" src="https://github.com/user-attachments/assets/5a989c7d-0eb0-4381-9494-e0adef78207d" />
+<img width="4000" height="2250" alt="triplet style" src="https://github.com/user-attachments/assets/4cd83365-71f4-4dac-981b-897fc3cb962d" />
+
+The 3d-printed enclosure is not yet publicly available, WIP.
 
 ## Flashing:
 
