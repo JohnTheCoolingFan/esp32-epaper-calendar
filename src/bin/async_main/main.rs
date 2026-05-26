@@ -228,8 +228,7 @@ async fn main(spawner: Spawner) {
         let mut calendar = CalendarMonth::from_date(local_time.date_naive());
         #[allow(unused_mut)]
         #[cfg(feature = "calendar-style-triplet")]
-        let mut calendar_before =
-            CalendarMonth::from_date(local_time.date_naive() - Months::new(1));
+        let mut calendar_befor = CalendarMonth::from_date(local_time.date_naive() - Months::new(1));
         #[allow(unused_mut)]
         #[cfg(feature = "calendar-style-triplet")]
         let mut calendar_after = CalendarMonth::from_date(local_time.date_naive() + Months::new(1));
@@ -242,7 +241,7 @@ async fn main(spawner: Spawner) {
                 .await
                 .unwrap();
             #[cfg(feature = "calendar-style-triplet")]
-            update_days_off_mask(http_client, &mut calendar_before)
+            update_days_off_mask(http_client, &mut calendar_befor)
                 .await
                 .unwrap();
             #[cfg(feature = "calendar-style-triplet")]
@@ -274,7 +273,7 @@ async fn main(spawner: Spawner) {
             &local_time,
             calendar,
             #[cfg(feature = "calendar-style-triplet")]
-            calendar_before,
+            calendar_befor,
             #[cfg(feature = "calendar-style-triplet")]
             calendar_after,
             &mut display,
