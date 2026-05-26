@@ -61,8 +61,8 @@ profont = "0.7.0"
 ds323x = "0.6.0"
 weact-studio-epd = "0.1.2"
 
-reqwless = { version = "0.13.0", features = ["log"], optional = true, default-features = false }
-sntpc = { version = "0.5.2", default-features = false, optional = true, features = ["embassy-socket", "log"] }
+reqwless = { version = "0.13.0", features = ["defmt"], optional = true, default-features = false }
+sntpc = { version = "0.5.2", default-features = false, optional = true, features = ["embassy-socket", "defmt"] }
 
 chrono = { version = "0.4.39", default-features = false }
 chrono-tz = { version = "0.10.1", default-features = false }
@@ -73,7 +73,7 @@ static_cell      = { version = "2.1.0",  features = ["nightly"] }
 heapless = { version = "0.8.0", default-features = false }
 serde = { version = "1.0.228", default-features = false, optional = true, features = ["alloc", "derive"] }
 serde-json-core = { version = "0.6.0", default-features = false, optional = true, features = ["heapless"] }
-defmt = { version = "1.1.0", features = ["alloc"] }
+defmt = { version = "0.3", features = ["alloc"] }
 
 [build-dependencies]
 chrono = { version = "0.4.39", default-features = false, features = ["now", "alloc"] }

@@ -32,6 +32,7 @@ use esp_hal::{
     time::RateExtU32,
 };
 use esp_hal_embassy::main;
+use esp_println as _;
 #[cfg(feature = "isdayoff")]
 use http_apis::isdayoff::update_days_off_mask;
 #[cfg(feature = "ntp")]

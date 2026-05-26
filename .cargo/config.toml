@@ -2,13 +2,13 @@
 runner = "espflash flash --monitor --log-format defmt"
 
 [env]
-DEFMT_LOG="INFO"
+ESP_LOG="INFO"
+DEFMT_LOG="info"
 EMBASSY_EXECUTOR_TASK_ARENA_SIZE="32768"
 
 [build]
 rustflags = [
   "-C", "link-arg=-nostartfiles",
-  "-C", "link-arg=-Tdefmt.x",
 ]
 
 target = "xtensa-esp32s3-none-elf"
