@@ -12,6 +12,7 @@
 - Fetching days off (Russia, Ukraine, Uzbekistan, Belarus, PRs for other countries / API providers are welcome)
 - Two display styles: three months or current month and day
 - Can run without network access if time sync and days off fetching are disabled
+- Weather forecast via https://open-meteo.com
 
 ## Styles
 
@@ -27,7 +28,16 @@ The 3d-printed enclosure is not yet publicly available, WIP.
 
 ## Flashing:
 
-First, you'll have to define some buildtime variables. You can specify them before build/flash command invocation (`WIFI_SSID="Your SSID here" cargo espflash ...`), or by putting them in a file `buildtime-vars`, one pair of variables on each line.
+### Environment variables
+
+You can specify them before build/flash command invocation (`WIFI_SSID="Your SSID here" cargo espflash ...`), or by putting them in a file `buildtime-vars`, one pair of variables on each line.
+- `WIFI_SSID` and `WIFI_PASSWORD` if you enable any of the features requiring internet access.
+- `WEATHER_LONGITUDE` and `WEATHER_LATITUDE` if you enabled weather forecast. 2 digits after the decimal point seems to be enough.
+
+### More customization
+
+- isdayoff country can be changed in [`src/bin/async_main/isdayoff.rs`](src/bin/async_main/http_apis/isdayoff.rs) by changing the `TARGET_COUNTRY` constant
+- Timezone can be changed in [`src/bin/async_main/time.rs`](src/bin/async_main/time.rs) by changing the `LOCAL_TZ` constant
 
 You will need https://crates.io/crates/cargo-espflash and the esp toolchain set up
 
@@ -45,10 +55,6 @@ Add `-M` flag to see the bootup log
 - `calendar-style-bignum` or `calendar-style-triplet` - enable ONE to select the display style
 - `monthdate-packed` - experimental representation of MonthDate, potentially better memory utilization
 
-### More customization
-
-- isdayoff country can be changed in [`src/bin/async_main/isdayoff.rs`](src/bin/async_main/http_apis/isdayoff.rs) by changing the `TARGET_COUNTRY` constant
-- Timezone can be changed in [`src/bin/async_main/time.rs`](src/bin/async_main/time.rs) by changing the `LOCAL_TZ` constant
 
 ## Pin mapping
 
