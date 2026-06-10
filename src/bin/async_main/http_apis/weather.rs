@@ -2,6 +2,7 @@ use alloc::format;
 use core::{cmp::Ordering, error::Error, fmt::Display};
 
 use defmt::error;
+use embassy_time::Duration;
 use reqwless::response::StatusCode;
 use serde::Deserialize;
 
@@ -44,9 +45,16 @@ pub async fn get_weather_forecast(
         "http://api.open-meteo.com/v1/forecast?longitude={LONGITUDE}&latitude={LATITUDE}&hourly=apparent_temperature,weather_code,wind_speed_10m&wind_speed_unit=ms&timeformat=unixtime&timezone=auto&forecast_days=1"
     );
 
+    // generous timeout to not trigger false positives (negatives?)
+    const TIMEOUT: Duration = Duration::from_secs(10);
+
     let mut rx_buf = [0_u8; 4096];
-    let mut request = client.request(reqwless::request::Method::GET, &url).await?;
-    let response = request.send(&mut rx_buf).await?;
+    let mut request = embassy_time::with_timeout(
+        TIMEOUT,
+        client.request(reqwless::request::Method::GET, &url),
+    )
+    .await??;
+    let response = embassy_time::with_timeout(TIMEOUT, request.send(&mut rx_buf)).await??;
 
     match response.status {
         StatusCode(200) => {
@@ -130,6 +138,7 @@ impl OpenMeteoResponse {
 pub enum ForecastError {
     Parse(serde_json_core::de::Error),
     Request(reqwless::Error),
+    TimeoutReached,
     StatusCode(StatusCode),
 }
 
@@ -138,6 +147,7 @@ impl Display for ForecastError {
         match self {
             Self::Parse(err) => write!(f, "HTTP Response parsing error: {err}"),
             Self::Request(err) => write!(f, "HTTP Request error: {err:?}"),
+            Self::TimeoutReached => f.write_str("Timeout reached"),
             Self::StatusCode(status) => write!(f, "Unsuccessful status code: {}", status.0),
         }
     }
@@ -148,7 +158,7 @@ impl Error for ForecastError {
         match self {
             Self::Parse(err) => Some(err),
             // reqwless error doesn't implement core:error::Error until 0.14
-            Self::Request(_) | Self::StatusCode(_) => None,
+            Self::Request(_) | Self::StatusCode(_) | Self::TimeoutReached => None,
         }
     }
 }
@@ -162,5 +172,11 @@ impl From<reqwless::Error> for ForecastError {
 impl From<serde_json_core::de::Error> for ForecastError {
     fn from(value: serde_json_core::de::Error) -> Self {
         Self::Parse(value)
+    }
+}
+
+impl From<embassy_time::TimeoutError> for ForecastError {
+    fn from(_: embassy_time::TimeoutError) -> Self {
+        Self::TimeoutReached
     }
 }
